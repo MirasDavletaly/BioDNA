@@ -1,0 +1,30 @@
+{
+  "Random Forest": {
+    "CV AUC (mean)": 1.0,
+    "CV AUC (std)": 0.0,
+    "Test AUC": 0.9905660377358491,
+    "Test Accuracy": 0.9661016949152542,
+    "Test F1": 0.9811320754716981
+  },
+  "Gradient Boosting": {
+    "CV AUC (mean)": 0.9888235294117648,
+    "CV AUC (std)": 0.02235294117647055,
+    "Test AUC": 0.9135220125786164,
+    "Test Accuracy": 0.9661016949152542,
+    "Test F1": 0.9811320754716981
+  },
+  "Logistic Regression": {
+    "CV AUC (mean)": 1.0,
+    "CV AUC (std)": 0.0,
+    "Test AUC": 0.9952830188679246,
+    "Test Accuracy": 0.9745762711864406,
+    "Test F1": 0.985781990521327
+  },
+  "SVM (RBF)": {
+    "CV AUC (mean)": 1.0,
+    "CV AUC (std)": 0.0,
+    "Test AUC": 0.9960691823899371,
+    "Test Accuracy": 0.9745762711864406,
+    "Test F1": 0.985781990521327
+  }
+}
