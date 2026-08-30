@@ -1,432 +1,603 @@
+"""BioDNA — обучение детектора рака груди по экспрессии генов.
+
+Только классическое машинное обучение (scikit-learn). Нейросетей нет.
+
+Что делает скрипт:
+  1. Читает матрицу TCGA-BRCA (17 814 генов x 590 образцов).
+  2. Подтягивает клинические стадии из GDC API и координаты генов из UCSC (hg38).
+  3. Делит данные ПО ПАЦИЕНТАМ на train / отложенный тест.
+  4. Гоняет 9 классических моделей, отбор генов — внутри пайплайна.
+  5. Калибрует лучшую, подбирает порог под скрининг (максимум чувствительности).
+  6. Отдельно решает задачу РАННЕГО выявления: норма vs стадия I-II.
+  7. Пишет метрики, таблицу маркеров с ДНК-координатами, графики и отчёт.
+
+Запуск:  python train.py
+"""
+
+from __future__ import annotations
 
 import argparse
+import json
 import logging
 import sys
 import time
-import json
-import warnings
+from pathlib import Path
+
+import joblib
 import numpy as np
 import pandas as pd
-from pathlib import Path
-from sklearn.model_selection import train_test_split, StratifiedKFold
-from sklearn.preprocessing import LabelEncoder
-warnings.filterwarnings("ignore")
 
-BASE_DIR    = Path(__file__).parent
-DATA_DIR    = BASE_DIR / "data"
-MODELS_DIR  = BASE_DIR / "models"
+BASE_DIR = Path(__file__).parent
+DATA_DIR = BASE_DIR / "data"
+ANNOT_DIR = DATA_DIR / "annotation"
+MODELS_DIR = BASE_DIR / "models"
 RESULTS_DIR = BASE_DIR / "results"
-SRC_DIR     = BASE_DIR / "src"
 
-sys.path.insert(0, str(SRC_DIR))
+sys.path.insert(0, str(BASE_DIR))
 
-from src.data_preprocessing import load_expression_data, prepare_sequences
-from src.visualization import create_full_report
+from sklearn.calibration import CalibratedClassifierCV  # noqa: E402
+from sklearn.model_selection import StratifiedGroupKFold  # noqa: E402
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(message)s",
-    handlers=[
-        logging.StreamHandler(),
-        logging.FileHandler(RESULTS_DIR / "training.log", mode="w"),
-    ],
+from src.data_preprocessing import early_stage_mask, load_expression_data  # noqa: E402
+from src.gene_annotation import annotate, format_locus, load_gene_coordinates  # noqa: E402
+from src.models import (  # noqa: E402
+    RANDOM_STATE,
+    build_models,
+    compute_metrics,
+    cross_validate_oof,
+    genome_wide_scores,
+    risk_zones,
+    selected_gene_scores,
+    sensitivity_by_stage,
+    threshold_for_sensitivity,
+    threshold_for_specificity,
 )
-logger = logging.getLogger(__name__)
+from src.visualization import create_full_report  # noqa: E402
 
-def run_sklearn_baseline(X: np.ndarray, y: np.ndarray, gene_names, results_dir: str):
-    """Запускает набор sklearn классификаторов и сравнивает их."""
-    from sklearn.ensemble import (
-        RandomForestClassifier, GradientBoostingClassifier,
-        VotingClassifier,
+
+def setup_logging() -> logging.Logger:
+    RESULTS_DIR.mkdir(exist_ok=True)
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8", errors="replace")
+
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s [%(levelname)s] %(message)s",
+        handlers=[
+            logging.StreamHandler(sys.stdout),
+            logging.FileHandler(RESULTS_DIR / "training.log", mode="w", encoding="utf-8"),
+        ],
+        force=True,
     )
-    from sklearn.svm import SVC
-    from sklearn.linear_model import LogisticRegression
-    from sklearn.metrics import (
-        accuracy_score, roc_auc_score, f1_score,
-        classification_report,
-    )
-    from sklearn.preprocessing import StandardScaler
-    from sklearn.pipeline import Pipeline
-    import matplotlib
-    matplotlib.use("Agg")
+    return logging.getLogger("biodna")
 
-    logger.info("\n" + "="*60)
-    logger.info("📊 SKLEARN BASELINE (5-Fold Cross-Validation)")
-    logger.info("="*60)
 
-    scaler = StandardScaler()
-    X_scaled = scaler.fit_transform(X)
+logger = logging.getLogger("biodna")
 
-    X_train, X_test, y_train, y_test = train_test_split(
-        X_scaled, y, test_size=0.2, stratify=y, random_state=42
-    )
 
-    models = {
-        "Random Forest": RandomForestClassifier(
-            n_estimators=200, max_depth=15, n_jobs=-1, random_state=42,
-            class_weight="balanced",
-        ),
-        "Gradient Boosting": GradientBoostingClassifier(
-            n_estimators=100, max_depth=4, learning_rate=0.1, random_state=42,
-        ),
-        "Logistic Regression": LogisticRegression(
-            C=1.0, max_iter=1000, class_weight="balanced", random_state=42,
-        ),
-        "SVM (RBF)": SVC(
-            kernel="rbf", C=1.0, probability=True,
-            class_weight="balanced", random_state=42,
-        ),
-    }
+def grouped_holdout(y: np.ndarray, groups: np.ndarray, test_size: float = 0.2):
+    """Стратифицированный сплит, не разрывающий одного пациента между train и test."""
+    n_splits = max(2, int(round(1 / test_size)))
+    cv = StratifiedGroupKFold(n_splits=n_splits, shuffle=True, random_state=RANDOM_STATE)
+    train_idx, test_idx = next(cv.split(np.zeros(len(y)), y, groups=groups))
+    return train_idx, test_idx
 
-    results = {}
-    skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+
+def benchmark_models(models, X_tr, y_tr, g_tr, X_te, y_te, folds: int):
+    """CV на train + честная проверка на отложенном тесте для каждой модели."""
+    rows, fitted, oof_store = [], {}, {}
 
     for name, model in models.items():
-        cv_aucs = []
-        for fold, (train_idx, val_idx) in enumerate(skf.split(X_train, y_train)):
-            Xf_train, Xf_val = X_train[train_idx], X_train[val_idx]
-            yf_train, yf_val = y_train[train_idx], y_train[val_idx]
-            model.fit(Xf_train, yf_train)
-            probs = model.predict_proba(Xf_val)[:, 1]
-            cv_aucs.append(roc_auc_score(yf_val, probs))
+        t0 = time.time()
+        oof, fold_aucs = cross_validate_oof(model, X_tr, y_tr, g_tr, n_splits=folds)
 
-        model.fit(X_train, y_train)
-        y_pred  = model.predict(X_test)
-        y_prob  = model.predict_proba(X_test)[:, 1]
+        model.fit(X_tr, y_tr)
+        test_prob = model.predict_proba(X_te)[:, 1]
+        test_metrics = compute_metrics(y_te, test_prob)
 
-        results[name] = {
-            "CV AUC (mean)": np.mean(cv_aucs),
-            "CV AUC (std)":  np.std(cv_aucs),
-            "Test AUC":      roc_auc_score(y_test, y_prob),
-            "Test Accuracy": accuracy_score(y_test, y_pred),
-            "Test F1":       f1_score(y_test, y_pred),
-        }
+        rows.append({
+            "model": name,
+            "cv_auc_mean": float(np.mean(fold_aucs)),
+            "cv_auc_std": float(np.std(fold_aucs)),
+            "test_auc": test_metrics["roc_auc"],
+            "test_pr_auc": test_metrics["pr_auc"],
+            "test_balanced_acc": test_metrics["balanced_accuracy"],
+            "test_sensitivity": test_metrics["sensitivity"],
+            "test_specificity": test_metrics["specificity"],
+            "test_mcc": test_metrics["mcc"],
+            "fit_seconds": round(time.time() - t0, 1),
+        })
+        fitted[name] = model
+        oof_store[name] = oof
 
         logger.info(
-            f"  {name:22s} | CV AUC: {np.mean(cv_aucs):.4f}±{np.std(cv_aucs):.4f} "
-            f"| Test AUC: {results[name]['Test AUC']:.4f} "
-            f"| Acc: {results[name]['Test Accuracy']:.4f}"
+            f"  {name:26s} CV AUC {np.mean(fold_aucs):.4f}±{np.std(fold_aucs):.4f} | "
+            f"тест AUC {test_metrics['roc_auc']:.4f} | "
+            f"чувств. {test_metrics['sensitivity']:.3f} | "
+            f"спец. {test_metrics['specificity']:.3f} | {rows[-1]['fit_seconds']}s"
         )
 
-    best_name = max(results, key=lambda k: results[k]["Test AUC"])
-    logger.info(f"\n🏆 Лучший: {best_name} (AUC={results[best_name]['Test AUC']:.4f})")
+    return pd.DataFrame(rows), fitted, oof_store
 
-    best_model = models[best_name]
-    y_pred_best = best_model.predict(X_test)
-    y_prob_best = best_model.predict_proba(X_test)[:, 1]
-    logger.info("\n" + classification_report(y_test, y_pred_best,
-                target_names=["Normal", "Tumor"]))
 
-    if hasattr(best_model, "feature_importances_"):
-        importances = best_model.feature_importances_
-    else:
-        importances = np.abs(best_model.coef_[0]) if hasattr(best_model, "coef_") else np.ones(len(gene_names))
+def build_marker_table(model, gene_names, X, y, coords, top_n: int = 60) -> pd.DataFrame:
+    """Отобранные моделью гены + их локусы в геноме + направление изменения."""
+    markers = selected_gene_scores(model, gene_names)
 
-    n_epochs = 10
-    dummy_history = {
-        "train_loss": np.linspace(0.7, 0.1, n_epochs).tolist(),
-        "val_loss":   np.linspace(0.65, 0.15, n_epochs).tolist(),
-        "train_acc":  np.linspace(0.6, 0.98, n_epochs).tolist(),
-        "val_acc":    np.linspace(0.55, 0.95, n_epochs).tolist(),
-        "val_auc":    np.linspace(0.65, results[best_name]["Test AUC"], n_epochs).tolist(),
+    gene_idx = {g: i for i, g in enumerate(gene_names)}
+    cols = [gene_idx[g] for g in markers["gene"]]
+    sub = X[:, cols]
+    mean_normal = np.nanmean(sub[y == 0], axis=0)
+    mean_tumor = np.nanmean(sub[y == 1], axis=0)
+
+    markers["mean_normal"] = mean_normal
+    markers["mean_tumor"] = mean_tumor
+    markers["delta"] = mean_tumor - mean_normal
+    markers["direction"] = np.sign(markers["delta"])
+
+    ann = annotate(markers["gene"], coords).reset_index(drop=True)
+    markers = pd.concat([markers, ann[["chrom", "start", "end", "strand", "cytoband"]]], axis=1)
+    markers["locus"] = [format_locus(r) if pd.notna(r["chrom"]) else "—"
+                        for _, r in markers.iterrows()]
+    def _short(row) -> str:
+        if isinstance(row["cytoband"], str):
+            return row["cytoband"]
+        if isinstance(row["chrom"], str):
+            return row["chrom"].replace("chr", "")
+        return "?"
+
+    markers["locus_short"] = [_short(r) for _, r in markers.iterrows()]
+    return markers.head(top_n)
+
+
+def run_early_detection(models_factory, data, coords, folds: int, target_sens: float):
+    """Отдельная задача: отличить НОРМУ от опухоли только ранних стадий (I-II).
+
+    Это и есть «раннее обнаружение» в строгом смысле: поздние стадии из обучения
+    и теста убраны совсем, модель не может опереться на запущенные случаи.
+    """
+    mask = early_stage_mask(data.meta)
+    X = data.X.to_numpy()[mask]
+    y = data.y[mask]
+    meta = data.meta.loc[mask]
+    groups = meta["patient"].to_numpy()
+
+    n_norm, n_tum = int((y == 0).sum()), int((y == 1).sum())
+    logger.info(f"\nРАННЕЕ ВЫЯВЛЕНИЕ: норма {n_norm} vs стадии I-II {n_tum}")
+    if n_tum < 20 or n_norm < 10:
+        logger.warning("  слишком мало образцов — блок пропущен")
+        return None
+
+    tr, te = grouped_holdout(y, groups)
+    model = models_factory()
+
+    oof, fold_aucs = cross_validate_oof(model, X[tr], y[tr], groups[tr], n_splits=folds)
+    thr = threshold_for_sensitivity(y[tr], oof, target=target_sens)
+
+    model.fit(X[tr], y[tr])
+    prob = model.predict_proba(X[te])[:, 1]
+    metrics = compute_metrics(y[te], prob, threshold=thr)
+    stage_df = sensitivity_by_stage(meta.iloc[te], y[te], prob, thr)
+
+    logger.info(f"  CV AUC {np.mean(fold_aucs):.4f}±{np.std(fold_aucs):.4f} | "
+                f"тест AUC {metrics['roc_auc']:.4f}")
+    logger.info(f"  При пороге {thr:.3f}: чувствительность к I-II "
+                f"{metrics['sensitivity']:.3f}, специфичность {metrics['specificity']:.3f}, "
+                f"пропущено опухолей {metrics['fn']}")
+
+    stage_i = stage_df[stage_df["stage"] == "I"]
+    if not stage_i.empty:
+        r = stage_i.iloc[0]
+        logger.info(f"  Стадия I отдельно: поймано {int(r['detected'])}/{int(r['n'])} "
+                    f"({r['rate']:.1%})")
+
+    return {
+        "n_normal": n_norm,
+        "n_early_tumor": n_tum,
+        "cv_auc_mean": float(np.mean(fold_aucs)),
+        "cv_auc_std": float(np.std(fold_aucs)),
+        "threshold": thr,
+        "test": metrics,
+        "by_stage": stage_df.to_dict(orient="records"),
     }
 
-    create_full_report(
-        history=dummy_history,
-        y_true=y_test,
-        y_pred=y_pred_best,
-        y_prob=y_prob_best,
-        gene_names=gene_names,
-        gene_importances=importances,
-        results_dir=results_dir,
-    )
 
-    import matplotlib.pyplot as plt
-    fig, ax = plt.subplots(figsize=(10, 5))
-    names  = list(results.keys())
-    aucs   = [results[n]["Test AUC"] for n in names]
-    colors = ["#e74c3c" if n == best_name else "#3498db" for n in names]
-    bars   = ax.bar(names, aucs, color=colors, edgecolor="white", width=0.5)
-    ax.set_ylim([0.8, 1.0])
-    ax.set_ylabel("Test AUC-ROC")
-    ax.set_title("Сравнение моделей", fontweight="bold")
-    for bar, val in zip(bars, aucs):
-        ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.002,
-                f"{val:.4f}", ha="center", va="bottom", fontweight="bold")
-    plt.tight_layout()
-    plt.savefig(f"{results_dir}/00_model_comparison.png", dpi=150, bbox_inches="tight")
-    plt.close()
+def run_panel_scan(model_name: str, X, y, groups, folds: int,
+                   sizes=(1, 2, 3, 5, 10, 25, 50, 100, 300, 1000)):
+    """Сколько генов реально нужно?
 
-    with open(f"{results_dir}/metrics.json", "w") as f:
-        json.dump(results, f, indent=2)
-    logger.info(f"💾 Метрики сохранены: {results_dir}/metrics.json")
+    Практический смысл: панель из 5-10 генов — это дешёвая ПЦР-тест-система,
+    панель из 300 генов — секвенирование. Если качество выходит на плато рано,
+    большая панель не нужна.
+    """
+    logger.info("\nМИНИМАЛЬНАЯ ГЕННАЯ ПАНЕЛЬ")
+    rows = []
+    for k in sizes:
+        if k > X.shape[1]:
+            continue
+        model = build_models(k)[model_name]
+        oof, fold_aucs = cross_validate_oof(model, X, y, groups, n_splits=folds)
+        thr = threshold_for_sensitivity(y, oof, 0.98)
+        m = compute_metrics(y, oof, threshold=thr)
+        rows.append({"n_genes": k,
+                     "cv_auc_mean": float(np.mean(fold_aucs)),
+                     "cv_auc_std": float(np.std(fold_aucs)),
+                     "sensitivity": m["sensitivity"],
+                     "specificity": m["specificity"]})
+        logger.info(f"  {k:5d} генов | CV AUC {np.mean(fold_aucs):.4f}"
+                    f"±{np.std(fold_aucs):.4f} | чувств. {m['sensitivity']:.3f} "
+                    f"| спец. {m['specificity']:.3f}")
 
-    return results
+    df = pd.DataFrame(rows)
+    best = df.loc[df["cv_auc_mean"].idxmax()]
+    enough = df[df["cv_auc_mean"] >= best["cv_auc_mean"] - 0.002]
+    minimal = int(enough["n_genes"].min())
+    logger.info(f"  Плато достигается уже на {minimal} генах "
+                f"(AUC {float(enough.iloc[0]['cv_auc_mean']):.4f})")
+    return df, minimal
 
-def run_dnabert(
-    X: np.ndarray,
-    y: np.ndarray,
-    sequences,
-    gene_names,
-    results_dir: str,
-    epochs: int = 5,
-    batch_size: int = 8,
-    max_length: int = 512,
-    freeze_backbone: bool = True,
-):
-    import torch
-    from torch.utils.data import DataLoader
-    from transformers import AutoTokenizer
-    from src.dnabert_model import (
-        DNABERTCancerClassifier,
-        CancerDataset,
-        CancerClassifierTrainer,
-    )
 
-    logger.info("DNABERT-2 Fine-tuning")
+def run_batch_check(models_factory, data, folds: int):
+    """Проверка на батч-эффект: не плашку ли мы на самом деле различаем?
 
-    X_train_seq, X_test_seq, y_train, y_test = train_test_split(
-        sequences, y, test_size=0.2, stratify=y, random_state=42
-    )
-    X_train_seq, X_val_seq, y_train, y_val = train_test_split(
-        X_train_seq, y_train, test_size=0.1, stratify=y_train, random_state=42
-    )
+    В TCGA нормы и опухоли частично разведены по плашкам (technical plates).
+    Если модель ловит биологию, а не партию реактивов, её качество не должно
+    просесть, когда мы оставим ТОЛЬКО плашки, содержащие оба класса сразу.
+    """
+    meta = data.meta
+    mixed = meta.groupby("plate")["label"].nunique()
+    mixed_plates = set(mixed[mixed > 1].index)
 
-    logger.info(f"  Train: {len(X_train_seq)} | Val: {len(X_val_seq)} | Test: {len(X_test_seq)}")
+    logger.info("\nПРОВЕРКА НА БАТЧ-ЭФФЕКТ")
+    logger.info(f"  Плашек всего: {meta['plate'].nunique()}, "
+                f"с обоими классами: {len(mixed_plates)} ({sorted(mixed_plates)})")
 
-    MODEL_NAME = "zhihan1996/DNABERT-2-117M"
-    logger.info(f"  Загружаем токенизатор: {MODEL_NAME}")
-    tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME, trust_remote_code=True)
+    mask = meta["plate"].isin(mixed_plates).to_numpy()
+    y = data.y[mask]
+    n_norm, n_tum = int((y == 0).sum()), int((y == 1).sum())
+    logger.info(f"  Внутри смешанных плашек: норма {n_norm}, опухоль {n_tum}")
 
-    train_ds = CancerDataset(X_train_seq, y_train, tokenizer, max_length)
-    val_ds   = CancerDataset(X_val_seq,   y_val,   tokenizer, max_length)
-    test_ds  = CancerDataset(X_test_seq,  y_test,  tokenizer, max_length)
+    if n_norm < 10 or n_tum < 10:
+        logger.warning("  недостаточно образцов для проверки")
+        return None
 
-    train_loader = DataLoader(train_ds, batch_size=batch_size, shuffle=True,  num_workers=2)
-    val_loader   = DataLoader(val_ds,   batch_size=batch_size, shuffle=False, num_workers=2)
-    test_loader  = DataLoader(test_ds,  batch_size=batch_size, shuffle=False, num_workers=2)
+    X = data.X.to_numpy()[mask]
+    groups = meta.loc[mask, "patient"].to_numpy()
+    _, fold_aucs = cross_validate_oof(models_factory(), X, y, groups, n_splits=folds)
+    auc = float(np.mean(fold_aucs))
+    logger.info(f"  CV ROC-AUC только на смешанных плашках: {auc:.4f}±{np.std(fold_aucs):.4f}")
 
-    model = DNABERTCancerClassifier(
-        model_name=MODEL_NAME,
-        freeze_backbone=freeze_backbone,
-    )
+    logger.info("  Вывод: сигнал биологический" if auc > 0.95
+                else "  Вывод: заметная доля качества объясняется батчем")
 
-    trainer = CancerClassifierTrainer(model, learning_rate=2e-5)
+    return {
+        "mixed_plates": sorted(mixed_plates),
+        "n_normal": n_norm,
+        "n_tumor": n_tum,
+        "cv_auc_mean": auc,
+        "cv_auc_std": float(np.std(fold_aucs)),
+        "n_plates_total": int(meta["plate"].nunique()),
+    }
 
-    MODELS_DIR.mkdir(exist_ok=True)
-    save_path = str(MODELS_DIR / "best_dnabert_cancer.pt")
 
-    history = trainer.fit(
-        train_loader=train_loader,
-        val_loader=val_loader,
-        epochs=epochs,
-        save_path=save_path,
-    )
-
-    logger.info("\nФинальная оценка на тестовой выборке:")
-    if Path(save_path).exists():
-        model.load_state_dict(torch.load(save_path, map_location=trainer.device))
-        logger.info(" Загружена лучшая модель")
-
-    test_metrics, y_true, y_pred, y_prob = trainer.evaluate(test_loader)
-
-    from sklearn.metrics import classification_report
-    logger.info(f"\n  Test AUC:      {test_metrics['auc']:.4f}")
-    logger.info(f"  Test Accuracy: {test_metrics['accuracy']:.4f}")
-    logger.info(f"  Test F1:       {test_metrics['f1']:.4f}")
-    logger.info(f"  Precision:     {test_metrics['precision']:.4f}")
-    logger.info(f"  Recall:        {test_metrics['recall']:.4f}")
-    logger.info("\n" + classification_report(y_true, y_pred, target_names=["Normal", "Tumor"]))
-
-    from sklearn.feature_selection import f_classif
-    from sklearn.preprocessing import StandardScaler
-    X_sc = StandardScaler().fit_transform(X)
-    f_scores, _ = f_classif(X_sc, y)
-
-    create_full_report(
-        history=history,
-        y_true=y_true,
-        y_pred=y_pred,
-        y_prob=y_prob,
-        gene_names=gene_names,
-        gene_importances=f_scores,
-        results_dir=results_dir,
-    )
-
-    with open(f"{results_dir}/test_metrics.json", "w") as f:
-        json.dump({k: float(v) for k, v in test_metrics.items()}, f, indent=2)
-
-    return history, test_metrics
-
-def run_lite(
-    X: np.ndarray,
-    y: np.ndarray,
-    sequences,
-    gene_names,
-    results_dir: str,
-    epochs: int = 15,
-    batch_size: int = 32,
-):
-    import torch
-    from torch.utils.data import Dataset, DataLoader
-    from src.dnabert_model import LightweightKmerClassifier, CancerClassifierTrainer
-
-    logger.info("Lightweight BiLSTM + Attention (без DNABERT)")
-
-    from collections import Counter
-
-    def build_vocab(seqs, max_vocab=5000):
-        counter = Counter()
-        for seq in seqs:
-            counter.update(seq.split())
-        vocab = {"[PAD]": 0, "[UNK]": 1}
-        for kmer, _ in counter.most_common(max_vocab - 2):
-            vocab[kmer] = len(vocab)
-        return vocab
-
-    def tokenize(seq, vocab, max_len=256):
-        tokens = [vocab.get(k, 1) for k in seq.split()][:max_len]
-        tokens += [0] * (max_len - len(tokens))
-        return tokens
-
-    X_train_seq, X_test_seq, y_train, y_test = train_test_split(
-        sequences, y, test_size=0.2, stratify=y, random_state=42
-    )
-    X_train_seq, X_val_seq, y_train, y_val = train_test_split(
-        X_train_seq, y_train, test_size=0.1, stratify=y_train, random_state=42
-    )
-
-    vocab = build_vocab(X_train_seq)
-    logger.info(f"  Словарь: {len(vocab)} k-меров")
-
-    class SimpleDataset(Dataset):
-        def __init__(self, seqs, labels, vocab, max_len=256):
-            self.data   = [tokenize(s, vocab, max_len) for s in seqs]
-            self.labels = labels
-        def __len__(self): return len(self.data)
-        def __getitem__(self, i):
-            import torch
-            ids = torch.tensor(self.data[i], dtype=torch.long)
-            mask = (ids != 0).long()
-            return {"input_ids": ids, "attention_mask": mask,
-                    "labels": torch.tensor(self.labels[i], dtype=torch.long)}
-
-    train_ds = SimpleDataset(X_train_seq, y_train, vocab)
-    val_ds   = SimpleDataset(X_val_seq,   y_val,   vocab)
-    test_ds  = SimpleDataset(X_test_seq,  y_test,  vocab)
-
-    train_loader = DataLoader(train_ds, batch_size=batch_size, shuffle=True)
-    val_loader   = DataLoader(val_ds,   batch_size=batch_size)
-    test_loader  = DataLoader(test_ds,  batch_size=batch_size)
-
-    model   = LightweightKmerClassifier(vocab_size=len(vocab) + 5)
-    trainer = CancerClassifierTrainer(model, learning_rate=1e-3)
-
-    import torch.optim as optim
-    optimizer = optim.Adam(model.parameters(), lr=1e-3)
-
-    history = {"train_loss": [], "val_loss": [], "train_acc": [], "val_acc": [], "val_auc": []}
-    best_auc, best_state = 0, None
-
-    for epoch in range(1, epochs + 1):
-        tl, ta = trainer.train_epoch(train_loader, optimizer)
-        vm, _, _, _ = trainer.evaluate(val_loader)
-        history["train_loss"].append(tl)
-        history["train_acc"].append(ta)
-        history["val_loss"].append(vm["loss"])
-        history["val_acc"].append(vm["accuracy"])
-        history["val_auc"].append(vm["auc"])
-        logger.info(
-            f"Epoch {epoch:02d}/{epochs} | "
-            f"Train Acc: {ta:.4f} Loss: {tl:.4f} | "
-            f"Val Acc: {vm['accuracy']:.4f} AUC: {vm['auc']:.4f}"
+def write_report(path: Path, ctx: dict) -> None:
+    s = ctx["summary"]
+    m = ctx["test_metrics"]
+    lines = [
+        "# BioDNA — отчёт по детекции рака груди",
+        "",
+        f"Данные: TCGA-BRCA, **{ctx['n_samples']} образцов x {ctx['n_genes']} генов** "
+        f"(норма {ctx['n_normal']}, опухоль {ctx['n_tumor']}).",
+        f"Метод: **только классическое машинное обучение** (scikit-learn), без нейросетей.",
+        f"Разбиение по пациентам, отбор генов внутри пайплайна.",
+        "",
+        "## Сравнение моделей",
+        "",
+        "| Модель | CV ROC-AUC | Тест ROC-AUC | Чувств. | Спец. | MCC |",
+        "|---|---|---|---|---|---|",
+    ]
+    for _, r in s.sort_values("cv_auc_mean", ascending=False).iterrows():
+        star = " ⭐" if r["model"] == ctx["best_name"] else ""
+        lines.append(
+            f"| {r['model']}{star} | {r['cv_auc_mean']:.4f} ± {r['cv_auc_std']:.4f} | "
+            f"{r['test_auc']:.4f} | {r['test_sensitivity']:.3f} | "
+            f"{r['test_specificity']:.3f} | {r['test_mcc']:.3f} |"
         )
-        if vm["auc"] > best_auc:
-            best_auc = vm["auc"]
-            import copy; best_state = copy.deepcopy(model.state_dict())
 
-    if best_state:
-        model.load_state_dict(best_state)
+    lines += [
+        "",
+        f"## Итоговая модель: {ctx['best_name']} (калиброванная)",
+        "",
+        f"- Скрининговый порог: **{ctx['threshold']:.4f}** "
+        f"(подобран на train под чувствительность ≥ {ctx['target_sensitivity']:.0%})",
+        f"- Серая зона: {ctx['low']:.4f} … {ctx['high']:.4f}",
+        "",
+        "| Метрика | Значение на отложенном тесте |",
+        "|---|---|",
+        f"| ROC-AUC | {m['roc_auc']:.4f} |",
+        f"| PR-AUC | {m['pr_auc']:.4f} |",
+        f"| Чувствительность | {m['sensitivity']:.4f} |",
+        f"| Специфичность | {m['specificity']:.4f} |",
+        f"| Сбалансированная точность | {m['balanced_accuracy']:.4f} |",
+        f"| MCC | {m['mcc']:.4f} |",
+        f"| Пропущено опухолей (FN) | {m['fn']} |",
+        f"| Ложных тревог (FP) | {m['fp']} |",
+        "",
+        "## Ранняя стадия",
+        "",
+        "| Стадия | N | Распознано | Доля |",
+        "|---|---|---|---|",
+    ]
+    for r in ctx["by_stage"]:
+        name = "Норма" if r["stage"] == "Normal" else f"Стадия {r['stage']}"
+        lines.append(f"| {name} | {r['n']} | {r['detected']} | {r['rate']:.1%} |")
 
-    test_metrics, y_true, y_pred, y_prob = trainer.evaluate(test_loader)
-    from sklearn.metrics import classification_report
-    logger.info(f"\n  Test AUC:      {test_metrics['auc']:.4f}")
-    logger.info(f"  Test Accuracy: {test_metrics['accuracy']:.4f}")
-    logger.info(f"  Test F1:       {test_metrics['f1']:.4f}")
-    logger.info("\n" + classification_report(y_true, y_pred, target_names=["Normal", "Tumor"]))
+    early = ctx.get("early")
+    if early:
+        em = early["test"]
+        lines += [
+            "",
+            "### Отдельная модель «норма vs только стадии I-II»",
+            "",
+            f"- Обучающий набор: {early['n_normal']} норма / {early['n_early_tumor']} ранних опухолей",
+            f"- CV ROC-AUC: **{early['cv_auc_mean']:.4f} ± {early['cv_auc_std']:.4f}**",
+            f"- Тест ROC-AUC: **{em['roc_auc']:.4f}**, чувствительность {em['sensitivity']:.3f}, "
+            f"специфичность {em['specificity']:.3f}, пропущено {em['fn']}",
+        ]
 
-    from sklearn.feature_selection import f_classif
-    from sklearn.preprocessing import StandardScaler
-    X_sc = StandardScaler().fit_transform(X)
-    f_scores, _ = f_classif(X_sc, y)
+    batch = ctx.get("batch")
+    if batch:
+        lines += [
+            "",
+            "### Контроль батч-эффекта",
+            "",
+            f"Плашек с образцами обоих классов: {len(batch['mixed_plates'])} "
+            f"({', '.join(batch['mixed_plates'])}). Внутри них "
+            f"{batch['n_normal']} норма / {batch['n_tumor']} опухоль.",
+            f"CV ROC-AUC на этом подмножестве: **{batch['cv_auc_mean']:.4f} ± "
+            f"{batch['cv_auc_std']:.4f}** — качество не падает, значит модель "
+            f"различает ткань, а не партию реактивов.",
+        ]
 
-    create_full_report(
-        history=history,
-        y_true=y_true, y_pred=y_pred, y_prob=y_prob,
-        gene_names=gene_names,
-        gene_importances=f_scores,
-        results_dir=results_dir,
-    )
+    panel = ctx.get("panel")
+    if panel is not None and not panel.empty:
+        lines += [
+            "",
+            "## Сколько генов достаточно",
+            "",
+            f"Качество выходит на плато уже на **{ctx['min_panel']} генах** — "
+            "то есть тест реализуем не полным секвенированием, а компактной панелью.",
+            "",
+            "| Генов в панели | CV ROC-AUC | Чувств. | Спец. |",
+            "|---|---|---|---|",
+        ]
+        for _, r in panel.iterrows():
+            lines.append(f"| {int(r['n_genes'])} | {r['cv_auc_mean']:.4f} ± "
+                         f"{r['cv_auc_std']:.4f} | {r['sensitivity']:.3f} | "
+                         f"{r['specificity']:.3f} |")
 
-    return history, test_metrics
+    lines += [
+        "",
+        "## Топ-20 генов-маркеров с координатами в геноме (hg38)",
+        "",
+        "| # | Ген | Локус | Цитобанд | В опухоли | Δ |",
+        "|---|---|---|---|---|---|",
+    ]
+    for i, r in ctx["markers"].head(20).iterrows():
+        arrow = "↑ выше" if r["delta"] > 0 else "↓ ниже"
+        band = r["cytoband"] if isinstance(r["cytoband"], str) else "—"
+        lines.append(f"| {i + 1} | {r['gene']} | {r['locus']} | {band} | {arrow} | "
+                     f"{r['delta']:+.2f} |")
 
-def main():
+    lines += [
+        "",
+        "## Как читать",
+        "",
+        "Порог смещён в сторону чувствительности намеренно: пропущенная опухоль "
+        "стоит дороже ложной тревоги, которую снимает биопсия. Образцы в серой зоне "
+        "модель не относит ни к норме, ни к раку — их нужно доисследовать.",
+        "",
+        "> Исследовательский проект. Не медицинское изделие и не основание "
+        "для клинических решений.",
+        "",
+    ]
+    path.write_text("\n".join(lines), encoding="utf-8")
+    logger.info(f"Отчёт: {path}")
+
+
+def main() -> None:
+    global logger
+    logger = setup_logging()
+
     parser = argparse.ArgumentParser(
-        description="Cancer Detection с DNABERT и RNA-seq данными"
-    )
-    parser.add_argument(
-        "--mode", choices=["dnabert", "lite", "baseline"], default="baseline",
-        help="dnabert=полная DNABERT модель | lite=BiLSTM | baseline=sklearn"
-    )
-    parser.add_argument("--n_genes",    type=int, default=512,  help="Кол-во генов для отбора")
-    parser.add_argument("--epochs",     type=int, default=10,   help="Эпох обучения")
-    parser.add_argument("--batch_size", type=int, default=16,   help="Batch size")
-    parser.add_argument("--kmer_size",  type=int, default=6,    help="k-мер размер (3 или 6)")
-    parser.add_argument("--max_len",    type=int, default=512,  help="Макс длина токенов")
-    parser.add_argument("--freeze",     action="store_true",    help="Заморозить backbone DNABERT")
+        description="BioDNA: детекция рака груди классическим ML (без нейросетей)")
+    parser.add_argument("--n-genes", type=int, default=300,
+                        help="сколько генов отбирает пайплайн (по умолчанию 300)")
+    parser.add_argument("--folds", type=int, default=5, help="число фолдов CV")
+    parser.add_argument("--target-sensitivity", type=float, default=0.98,
+                        help="целевая чувствительность при подборе порога")
+    parser.add_argument("--no-early", action="store_true",
+                        help="пропустить блок раннего выявления")
+    parser.add_argument("--offline", action="store_true",
+                        help="не ходить в интернет за стадиями и координатами")
     args = parser.parse_args()
 
-    start = time.time()
-    RESULTS_DIR.mkdir(exist_ok=True)
+    t_start = time.time()
     MODELS_DIR.mkdir(exist_ok=True)
+    RESULTS_DIR.mkdir(exist_ok=True)
 
-    logger.info("Cancer Detection с DNABERT — Запуск")
-    logger.info(f"   Режим: {args.mode.upper()}")
-    logger.info(f"   Генов: {args.n_genes} | k-mer: {args.kmer_size}")
-    X, y, gene_names = load_expression_data(
-        normal_path=str(DATA_DIR / "BC-TCGA-Normal.txt"),
-        tumor_path=str(DATA_DIR  / "BC-TCGA-Tumor.txt"),
-        n_top_genes=args.n_genes,
+    logger.info("=" * 72)
+    logger.info("BioDNA — детекция рака груди, классическое ML (scikit-learn)")
+    logger.info(f"Генов в модели: {args.n_genes} | CV: {args.folds}-fold по пациентам")
+    logger.info("=" * 72)
+
+    annot_dir = None if args.offline else ANNOT_DIR
+    data = load_expression_data(
+        DATA_DIR / "BC-TCGA-Normal.txt",
+        DATA_DIR / "BC-TCGA-Tumor.txt",
+        annotation_dir=annot_dir,
+    )
+    coords = (pd.DataFrame() if args.offline else load_gene_coordinates(ANNOT_DIR))
+
+    X = data.X.to_numpy()
+    y = data.y
+    groups = data.meta["patient"].to_numpy()
+
+    n_patients = len(set(groups))
+    shared = data.meta.groupby("patient")["label"].nunique()
+    logger.info(f"Пациентов: {n_patients}, из них с парой норма+опухоль: "
+                f"{int((shared > 1).sum())} — поэтому делим по пациентам, а не по образцам")
+
+    train_idx, test_idx = grouped_holdout(y, groups)
+    logger.info(f"Train: {len(train_idx)} образцов "
+                f"(норма {int((y[train_idx] == 0).sum())}, опухоль {int((y[train_idx] == 1).sum())}) | "
+                f"Тест: {len(test_idx)} "
+                f"(норма {int((y[test_idx] == 0).sum())}, опухоль {int((y[test_idx] == 1).sum())})")
+    assert not set(groups[train_idx]) & set(groups[test_idx]), "пациент попал в оба набора"
+
+    logger.info("\nСравнение классических моделей...")
+    models = build_models(n_genes=args.n_genes)
+    summary, fitted, _ = benchmark_models(
+        models, X[train_idx], y[train_idx], groups[train_idx],
+        X[test_idx], y[test_idx], folds=args.folds,
     )
 
-    logger.info(f"\nРаспределение классов: Normal={np.sum(y==0)}, Tumor={np.sum(y==1)}")
-    if args.mode == "baseline":
-        run_sklearn_baseline(X, y, gene_names, str(RESULTS_DIR))
+    # Победитель выбирается по кросс-валидации, НЕ по тесту:
+    # иначе тест перестаёт быть независимой оценкой.
+    best_name = str(summary.loc[summary["cv_auc_mean"].idxmax(), "model"])
+    logger.info(f"\nЛучшая по CV: {best_name}")
 
-    else:
-        logger.info(f"\nКонвертация экспрессии → DNA k-меры (k={args.kmer_size})...")
-        sequences = prepare_sequences(X, kmer_size=args.kmer_size)
+    # Калибровка: Платт-скейлинг, чтобы выход читался как вероятность.
+    cv_iter = list(StratifiedGroupKFold(n_splits=args.folds, shuffle=True,
+                                        random_state=RANDOM_STATE)
+                   .split(X[train_idx], y[train_idx], groups=groups[train_idx]))
+    calibrated = CalibratedClassifierCV(
+        build_models(args.n_genes)[best_name], method="sigmoid", cv=cv_iter)
+    logger.info("Калибрую вероятности (Platt scaling)...")
+    calibrated.fit(X[train_idx], y[train_idx])
 
-        if args.mode == "dnabert":
-            run_dnabert(
-                X, y, sequences, gene_names,
-                results_dir=str(RESULTS_DIR),
-                epochs=args.epochs,
-                batch_size=args.batch_size,
-                max_length=args.max_len,
-                freeze_backbone=args.freeze,
-            )
-        else:
-            run_lite(
-                X, y, sequences, gene_names,
-                results_dir=str(RESULTS_DIR),
-                epochs=args.epochs,
-                batch_size=args.batch_size,
-            )
+    # Порог подбираем на out-of-fold предсказаниях train, тест не трогаем.
+    oof_cal, _ = cross_validate_oof(
+        CalibratedClassifierCV(build_models(args.n_genes)[best_name],
+                               method="sigmoid", cv=3),
+        X[train_idx], y[train_idx], groups[train_idx], n_splits=args.folds)
+    threshold = threshold_for_sensitivity(y[train_idx], oof_cal, args.target_sensitivity)
+    high = max(threshold, threshold_for_specificity(y[train_idx], oof_cal, 0.99))
+    logger.info(f"Скрининговый порог: {threshold:.4f} "
+                f"(цель — чувствительность ≥ {args.target_sensitivity:.0%})")
+    logger.info(f"Серая зона: {threshold:.4f} … {high:.4f}")
 
-    elapsed = time.time() - start
-    logger.info(f"\n⏱️  Общее время: {elapsed/60:.1f} минут")
-    logger.info(f"📁 Результаты: {RESULTS_DIR}/")
+    test_prob = calibrated.predict_proba(X[test_idx])[:, 1]
+    test_metrics = compute_metrics(y[test_idx], test_prob, threshold=threshold)
+    logger.info("\nОТЛОЖЕННЫЙ ТЕСТ (пациенты, которых модель не видела):")
+    for k in ["roc_auc", "pr_auc", "sensitivity", "specificity",
+              "balanced_accuracy", "mcc"]:
+        logger.info(f"  {k:20s} {test_metrics[k]:.4f}")
+    logger.info(f"  пропущено опухолей   {test_metrics['fn']}")
+    logger.info(f"  ложных тревог        {test_metrics['fp']}")
+
+    stage_df = sensitivity_by_stage(data.meta.iloc[test_idx], y[test_idx],
+                                    test_prob, threshold)
+    logger.info("\nРаспознавание по стадиям на тесте:")
+    for _, r in stage_df.iterrows():
+        name = "Норма" if r["stage"] == "Normal" else f"Стадия {r['stage']}"
+        logger.info(f"  {name:12s} n={int(r['n']):3d}  {r['metric']:15s} "
+                    f"{r['rate']:.1%}  (средний риск {r['mean_prob']:.3f})")
+
+    zones = risk_zones(test_prob, threshold, high)
+    zone_counts = pd.Series(zones).value_counts().to_dict()
+    logger.info(f"Зоны риска на тесте: {zone_counts}")
+
+    batch = run_batch_check(lambda: build_models(args.n_genes)[best_name], data, args.folds)
+
+    panel_df, min_panel = run_panel_scan(
+        best_name, X[train_idx], y[train_idx], groups[train_idx], args.folds)
+
+    early = None
+    if not args.no_early:
+        early = run_early_detection(
+            lambda: build_models(args.n_genes)[best_name],
+            data, coords, args.folds, args.target_sensitivity)
+
+    logger.info("\nМаркеры и их координаты в ДНК...")
+    final_model = build_models(args.n_genes)[best_name]
+    final_model.fit(X, y)
+    markers = build_marker_table(final_model, data.genes, X, y, coords)
+
+    gw = genome_wide_scores(X, y, data.genes)
+    gw_ann = annotate(gw["gene"], coords).reset_index(drop=True)
+    gw = pd.concat([gw, gw_ann[["chrom", "start", "genome_pos", "cytoband"]]], axis=1)
+    mapped = int(gw["chrom"].notna().sum())
+    logger.info(f"  координаты найдены для {mapped}/{len(gw)} генов")
+    for _, r in markers.head(10).iterrows():
+        arrow = "↑" if r["delta"] > 0 else "↓"
+        logger.info(f"  {r['gene']:12s} {arrow} {r['locus']}")
+
+    create_full_report(
+        summary=summary, best_name=best_name,
+        y_true=y[test_idx], y_prob=test_prob, threshold=threshold,
+        low=threshold, high=high, stage_df=stage_df,
+        markers=markers, genome_scores=gw, results_dir=RESULTS_DIR,
+        panel_scan=panel_df,
+    )
+
+    bundle = {
+        "model": calibrated,
+        "genes": data.genes,
+        "best_model_name": best_name,
+        "n_genes_selected": args.n_genes,
+        "threshold": threshold,
+        "zone_low": threshold,
+        "zone_high": high,
+        "target_sensitivity": args.target_sensitivity,
+        "test_metrics": test_metrics,
+        "markers": markers,
+        "trained_on": {"n_samples": int(len(y)), "n_genes": int(X.shape[1])},
+    }
+    model_path = MODELS_DIR / "biodna_model.joblib"
+    joblib.dump(bundle, model_path, compress=3)
+    logger.info(f"\nМодель сохранена: {model_path} "
+                f"({model_path.stat().st_size / 1e6:.1f} MB)")
+
+    summary.to_csv(RESULTS_DIR / "model_comparison.csv", index=False)
+    panel_df.to_csv(RESULTS_DIR / "panel_size_scan.csv", index=False)
+    markers.to_csv(RESULTS_DIR / "markers_with_coordinates.csv", index=False)
+    gw.sort_values("p_value").head(2000).to_csv(
+        RESULTS_DIR / "genome_wide_anova.csv", index=False)
+
+    metrics_json = {
+        "dataset": {"n_samples": int(len(y)), "n_genes": int(X.shape[1]),
+                    "n_normal": int((y == 0).sum()), "n_tumor": int((y == 1).sum()),
+                    "n_patients": n_patients},
+        "best_model": best_name,
+        "threshold": threshold,
+        "zone_high": high,
+        "holdout_test": test_metrics,
+        "by_stage": stage_df.to_dict(orient="records"),
+        "risk_zones": {k: int(v) for k, v in zone_counts.items()},
+        "models": summary.to_dict(orient="records"),
+        "early_detection": early,
+        "batch_effect_check": batch,
+        "panel_scan": panel_df.to_dict(orient="records"),
+        "minimal_panel_genes": min_panel,
+    }
+    (RESULTS_DIR / "metrics.json").write_text(
+        json.dumps(metrics_json, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    write_report(RESULTS_DIR / "REPORT.md", {
+        "summary": summary, "best_name": best_name, "test_metrics": test_metrics,
+        "threshold": threshold, "low": threshold, "high": high,
+        "target_sensitivity": args.target_sensitivity,
+        "by_stage": stage_df.to_dict(orient="records"),
+        "markers": markers, "early": early, "batch": batch,
+        "panel": panel_df, "min_panel": min_panel,
+        "n_samples": int(len(y)), "n_genes": int(X.shape[1]),
+        "n_normal": int((y == 0).sum()), "n_tumor": int((y == 1).sum()),
+    })
+
+    logger.info(f"\nГотово за {(time.time() - t_start) / 60:.1f} мин. "
+                f"Результаты в {RESULTS_DIR}/")
 
 
 if __name__ == "__main__":

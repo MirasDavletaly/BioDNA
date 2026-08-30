@@ -1,0 +1,10 @@
+__pycache__/
+*.py[cod]
+.venv/
+.idea/
+
+# Кэш скачанных аннотаций (refFlat, cytoBand, gene_info) — качается сам
+data/annotation/*.gz
+
+# Обученная модель — воспроизводится через `python train.py`
+models/*.joblib

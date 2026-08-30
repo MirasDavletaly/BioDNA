@@ -1,122 +1,138 @@
+"""Загрузка и подготовка матрицы экспрессии TCGA-BRCA.
+
+Важно: здесь НЕ делается ни отбор признаков, ни стандартизация.
+Всё это живёт внутри sklearn-Pipeline и обучается только на train-фолде —
+иначе информация о тесте протекает в отбор генов и метрики становятся
+завышенными (классическая ошибка: SelectKBest на всей выборке -> AUC 1.000).
+"""
+
+from __future__ import annotations
+
+import logging
+from dataclasses import dataclass
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
-from pathlib import Path
-from typing import Tuple, List
-from sklearn.preprocessing import StandardScaler
-from sklearn.feature_selection import SelectKBest, f_classif
-import logging
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger(__name__)
-# Каждому уровню экспрессии соответствует нуклеотид
-EXPRESSION_TO_NUC = {0: "A", 1: "C", 2: "G", 3: "T"}
+
+
+@dataclass
+class ExpressionData:
+    """Матрица экспрессии samples x genes плюс метаданные образцов."""
+    X: pd.DataFrame          # index = баркод образца, columns = символы генов
+    y: np.ndarray            # 0 = норма, 1 = опухоль
+    genes: list[str]
+    meta: pd.DataFrame       # barcode, patient, stage, stage_group, sample_type
+
+    @property
+    def n_samples(self) -> int:
+        return self.X.shape[0]
+
+    @property
+    def n_genes(self) -> int:
+        return self.X.shape[1]
+
+
+def _read_matrix(path: str | Path) -> pd.DataFrame:
+    """Файл TCGA: строки = гены, столбцы = образцы. Транспонируем в samples x genes."""
+    df = pd.read_csv(path, sep="\t", index_col=0)
+    df.index = df.index.astype(str).str.strip()
+    df = df[~df.index.duplicated(keep="first")]
+    return df.T.astype("float32")
 
 
 def load_expression_data(
-    normal_path: str,
-    tumor_path: str,
-    n_top_genes: int = 1000,
-) -> Tuple[np.ndarray, np.ndarray, List[str]]:
+    normal_path: str | Path,
+    tumor_path: str | Path,
+    max_nan_fraction: float = 0.2,
+    annotation_dir: str | Path | None = None,
+) -> ExpressionData:
+    """Читает норму и опухоль, склеивает, чистит, добавляет клинические стадии."""
     logger.info("Загрузка данных экспрессии генов...")
 
-    df_normal = pd.read_csv(normal_path, sep="\t", index_col=0)
-    df_tumor  = pd.read_csv(tumor_path,  sep="\t", index_col=0)
+    normal = _read_matrix(normal_path)
+    tumor = _read_matrix(tumor_path)
+    logger.info(f"  Norma : {normal.shape[0]} образцов x {normal.shape[1]} генов")
+    logger.info(f"  Tumor : {tumor.shape[0]} образцов x {tumor.shape[1]} генов")
 
-    logger.info(f"  Normal: {df_normal.shape[1]} образцов, {df_normal.shape[0]} генов")
-    logger.info(f"  Tumor : {df_tumor.shape[1]} образцов, {df_tumor.shape[0]} генов")
+    common = normal.columns.intersection(tumor.columns)
+    if len(common) < normal.shape[1]:
+        logger.info(f"  Общих генов: {len(common)}")
 
-    # Транспонируем: samples × genes
-    df_normal = df_normal.T
-    df_tumor  = df_tumor.T
+    X = pd.concat([normal[common], tumor[common]], axis=0)
+    y = np.array([0] * len(normal) + [1] * len(tumor), dtype=np.int8)
 
-    # Оставляем общие гены
-    common_genes = df_normal.columns.intersection(df_tumor.columns)
-    df_normal = df_normal[common_genes]
-    df_tumor  = df_tumor[common_genes]
+    # Гены с большой долей пропусков и константы бесполезны и мешают отбору.
+    nan_frac = X.isna().mean(axis=0)
+    keep = nan_frac <= max_nan_fraction
+    dropped_nan = int((~keep).sum())
 
-    # Объединяем
-    X_all = pd.concat([df_normal, df_tumor], axis=0)
-    y_all = np.array([0] * len(df_normal) + [1] * len(df_tumor))
+    variance = X.loc[:, keep].var(axis=0, skipna=True)
+    keep_var = variance > 1e-8
+    dropped_const = int((~keep_var).sum())
 
-    # Заполняем NaN медианой по гену
-    X_all = X_all.fillna(X_all.median())
+    X = X.loc[:, keep][keep_var.index[keep_var]]
+    if dropped_nan or dropped_const:
+        logger.info(f"  Отброшено генов: {dropped_nan} по пропускам, "
+                    f"{dropped_const} константных")
 
-    logger.info(f"Итого: {X_all.shape[0]} образцов, {X_all.shape[1]} генов")
+    meta = _build_meta(X.index, y, annotation_dir)
 
-    # Отбор топ-N генов по дисперсии (быстрый фильтр перед ANOVA)
-    gene_var = X_all.var(axis=0)
-    top_var_genes = gene_var.nlargest(min(n_top_genes * 5, len(common_genes))).index
-    X_filtered = X_all[top_var_genes]
+    logger.info(f"Итого: {X.shape[0]} образцов x {X.shape[1]} генов "
+                f"(норма {int((y == 0).sum())}, опухоль {int((y == 1).sum())})")
 
-    # ANOVA: выбираем гены с наибольшей разделимостью классов
-    selector = SelectKBest(f_classif, k=min(n_top_genes, len(top_var_genes)))
-    selector.fit(X_filtered.values, y_all)
-    selected_mask = selector.get_support()
-    selected_genes = list(top_var_genes[selected_mask])
-
-    X_selected = X_all[selected_genes].values
-
-    logger.info(f"Отобрано {len(selected_genes)} информативных генов (ANOVA F-test)")
-
-    return X_selected, y_all, selected_genes
+    return ExpressionData(X=X, y=y, genes=list(X.columns), meta=meta)
 
 
-def expression_to_dna_sequence(
-    expression_vector: np.ndarray,
-    kmer_size: int = 6,
-) -> str:
-    q1, q2, q3 = np.percentile(expression_vector, [25, 50, 75])
+def _build_meta(barcodes, y: np.ndarray, annotation_dir) -> pd.DataFrame:
+    from src.clinical import fetch_stages, is_tumor_barcode, plate_id, sample_type_code
 
-    def to_nuc(val: float) -> str:
-        if val <= q1:
-            return "A"
-        elif val <= q2:
-            return "C"
-        elif val <= q3:
-            return "G"
-        else:
-            return "T"
+    if annotation_dir is not None:
+        meta = fetch_stages(barcodes, annotation_dir)
+    else:
+        meta = pd.DataFrame(index=pd.Index(barcodes, name="barcode"))
+        meta["patient"] = [b for b in barcodes]
+        meta["stage"] = "Unknown"
+        meta["stage_group"] = "unknown"
 
-    dna_seq = "".join(to_nuc(v) for v in expression_vector)
-    return dna_seq
+    meta["label"] = y
+    meta["sample_type"] = [sample_type_code(b) for b in barcodes]
+    meta["plate"] = [plate_id(b) for b in barcodes]
+
+    # Норма не имеет стадии, даже если у пациента есть диагноз.
+    meta.loc[meta["label"] == 0, ["stage", "stage_group"]] = ["Normal", "normal"]
+
+    mismatch = sum(
+        1 for b, lab in zip(barcodes, y)
+        if is_tumor_barcode(b) is not None and int(is_tumor_barcode(b)) != int(lab)
+    )
+    if mismatch:
+        logger.warning(f"  Баркод не совпадает с меткой у {mismatch} образцов")
+
+    counts = meta.loc[meta["label"] == 1, "stage"].value_counts().to_dict()
+    if counts:
+        logger.info(f"  Стадии опухолей: {counts}")
+    return meta
 
 
-def sequence_to_kmers(sequence: str, k: int = 6) -> str:
-    kmers = [sequence[i:i+k] for i in range(len(sequence) - k + 1)]
-    return " ".join(kmers)
-
-
-def prepare_sequences(
-    X: np.ndarray,
-    kmer_size: int = 6,
-) -> List[str]:
-    scaler = StandardScaler()
-    X_scaled = scaler.fit_transform(X)
-
-    sequences = []
-    for i, sample in enumerate(X_scaled):
-        dna_seq = expression_to_dna_sequence(sample, kmer_size)
-        kmer_seq = sequence_to_kmers(dna_seq, k=kmer_size)
-        sequences.append(kmer_seq)
-
-        if (i + 1) % 100 == 0:
-            logger.info(f"  Обработано {i+1}/{len(X_scaled)} образцов")
-
-    logger.info(f"Сгенерировано {len(sequences)} последовательностей")
-    logger.info(f"   Пример: {sequences[0][:80]}...")
-
-    return sequences
+def early_stage_mask(meta: pd.DataFrame, include_unknown: bool = False) -> np.ndarray:
+    """Маска образцов для задачи РАННЕГО выявления: норма + опухоли стадии I-II."""
+    groups = meta["stage_group"].to_numpy()
+    mask = (groups == "normal") | (groups == "early")
+    if include_unknown:
+        mask |= groups == "unknown"
+    return mask
 
 
 if __name__ == "__main__":
-    BASE = Path(__file__).parent.parent
-
-    X, y, genes = load_expression_data(
-        normal_path=str(BASE / "data" / "BC-TCGA-Normal.txt"),
-        tumor_path=str(BASE / "data" / "BC-TCGA-Tumor.txt"),
-        n_top_genes=512,
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
+    base = Path(__file__).parent.parent
+    data = load_expression_data(
+        base / "data" / "BC-TCGA-Normal.txt",
+        base / "data" / "BC-TCGA-Tumor.txt",
+        annotation_dir=base / "data" / "annotation",
     )
-    seqs = prepare_sequences(X, kmer_size=6)
-    print(f"\nShape X: {X.shape}")
-    print(f"Labels: {np.bincount(y)}")
-    print(f"Seq length: {len(seqs[0].split())} k-mers")
+    print(data.X.shape, np.bincount(data.y))
+    print(data.meta.head())

@@ -1,30 +1,327 @@
 {
-  "Random Forest": {
-    "CV AUC (mean)": 1.0,
-    "CV AUC (std)": 0.0,
-    "Test AUC": 0.9905660377358491,
-    "Test Accuracy": 0.9661016949152542,
-    "Test F1": 0.9811320754716981
+  "dataset": {
+    "n_samples": 590,
+    "n_genes": 17814,
+    "n_normal": 61,
+    "n_tumor": 529,
+    "n_patients": 527
   },
-  "Gradient Boosting": {
-    "CV AUC (mean)": 0.9888235294117648,
-    "CV AUC (std)": 0.02235294117647055,
-    "Test AUC": 0.9135220125786164,
-    "Test Accuracy": 0.9661016949152542,
-    "Test F1": 0.9811320754716981
+  "best_model": "Logistic Regression (L2)",
+  "threshold": 0.6428972352080817,
+  "zone_high": 0.6428972352080817,
+  "holdout_test": {
+    "roc_auc": 1.0,
+    "pr_auc": 1.0,
+    "accuracy": 1.0,
+    "balanced_accuracy": 1.0,
+    "sensitivity": 1.0,
+    "specificity": 1.0,
+    "precision": 1.0,
+    "f1": 1.0,
+    "mcc": 1.0,
+    "threshold": 0.6428972352080817,
+    "tp": 106,
+    "tn": 12,
+    "fp": 0,
+    "fn": 0
   },
-  "Logistic Regression": {
-    "CV AUC (mean)": 1.0,
-    "CV AUC (std)": 0.0,
-    "Test AUC": 0.9952830188679246,
-    "Test Accuracy": 0.9745762711864406,
-    "Test F1": 0.985781990521327
+  "by_stage": [
+    {
+      "stage": "Normal",
+      "n": 12,
+      "detected": 12,
+      "rate": 1.0,
+      "metric": "специфичность",
+      "mean_prob": 0.15761869363875547
+    },
+    {
+      "stage": "I",
+      "n": 16,
+      "detected": 16,
+      "rate": 1.0,
+      "metric": "чувствительность",
+      "mean_prob": 0.9748751661522018
+    },
+    {
+      "stage": "II",
+      "n": 68,
+      "detected": 68,
+      "rate": 1.0,
+      "metric": "чувствительность",
+      "mean_prob": 0.9840751940166567
+    },
+    {
+      "stage": "III",
+      "n": 19,
+      "detected": 19,
+      "rate": 1.0,
+      "metric": "чувствительность",
+      "mean_prob": 0.9773519103330284
+    },
+    {
+      "stage": "IV",
+      "n": 2,
+      "detected": 2,
+      "rate": 1.0,
+      "metric": "чувствительность",
+      "mean_prob": 0.9928467587303149
+    },
+    {
+      "stage": "Unknown",
+      "n": 1,
+      "detected": 1,
+      "rate": 1.0,
+      "metric": "чувствительность",
+      "mean_prob": 0.9966211920562753
+    }
+  ],
+  "risk_zones": {
+    "high": 106,
+    "low": 12
   },
-  "SVM (RBF)": {
-    "CV AUC (mean)": 1.0,
-    "CV AUC (std)": 0.0,
-    "Test AUC": 0.9960691823899371,
-    "Test Accuracy": 0.9745762711864406,
-    "Test F1": 0.985781990521327
-  }
+  "models": [
+    {
+      "model": "Logistic Regression (L2)",
+      "cv_auc_mean": 1.0,
+      "cv_auc_std": 0.0,
+      "test_auc": 1.0,
+      "test_pr_auc": 1.0,
+      "test_balanced_acc": 1.0,
+      "test_sensitivity": 1.0,
+      "test_specificity": 1.0,
+      "test_mcc": 1.0,
+      "fit_seconds": 4.4
+    },
+    {
+      "model": "Logistic Regression (L1)",
+      "cv_auc_mean": 1.0,
+      "cv_auc_std": 0.0,
+      "test_auc": 1.0,
+      "test_pr_auc": 1.0,
+      "test_balanced_acc": 1.0,
+      "test_sensitivity": 1.0,
+      "test_specificity": 1.0,
+      "test_mcc": 1.0,
+      "fit_seconds": 4.3
+    },
+    {
+      "model": "SVM (RBF)",
+      "cv_auc_mean": 1.0,
+      "cv_auc_std": 0.0,
+      "test_auc": 1.0,
+      "test_pr_auc": 1.0,
+      "test_balanced_acc": 0.9583333333333333,
+      "test_sensitivity": 1.0,
+      "test_specificity": 0.9166666666666666,
+      "test_mcc": 0.95294264700113,
+      "fit_seconds": 4.4
+    },
+    {
+      "model": "Random Forest",
+      "cv_auc_mean": 0.9995238095238095,
+      "cv_auc_std": 0.000952380952380949,
+      "test_auc": 0.9992138364779873,
+      "test_pr_auc": 0.9999118321283724,
+      "test_balanced_acc": 0.9583333333333333,
+      "test_sensitivity": 1.0,
+      "test_specificity": 0.9166666666666666,
+      "test_mcc": 0.95294264700113,
+      "fit_seconds": 9.2
+    },
+    {
+      "model": "Extra Trees",
+      "cv_auc_mean": 0.9997619047619046,
+      "cv_auc_std": 0.0004761904761904745,
+      "test_auc": 0.9992138364779873,
+      "test_pr_auc": 0.9999118321283724,
+      "test_balanced_acc": 0.9583333333333333,
+      "test_sensitivity": 1.0,
+      "test_specificity": 0.9166666666666666,
+      "test_mcc": 0.95294264700113,
+      "fit_seconds": 7.2
+    },
+    {
+      "model": "Gradient Boosting",
+      "cv_auc_mean": 1.0,
+      "cv_auc_std": 0.0,
+      "test_auc": 0.9984276729559748,
+      "test_pr_auc": 0.999822832484371,
+      "test_balanced_acc": 0.9583333333333333,
+      "test_sensitivity": 1.0,
+      "test_specificity": 0.9166666666666666,
+      "test_mcc": 0.95294264700113,
+      "fit_seconds": 126.1
+    },
+    {
+      "model": "Naive Bayes",
+      "cv_auc_mean": 0.9951338313103019,
+      "cv_auc_std": 0.002448623254582914,
+      "test_auc": 0.9536163522012577,
+      "test_pr_auc": 0.989695651386886,
+      "test_balanced_acc": 0.9536163522012578,
+      "test_sensitivity": 0.9905660377358491,
+      "test_specificity": 0.9166666666666666,
+      "test_mcc": 0.9072327044025157,
+      "fit_seconds": 4.3
+    },
+    {
+      "model": "k-NN (k=5)",
+      "cv_auc_mean": 0.9985854341736694,
+      "cv_auc_std": 0.0022809790573149543,
+      "test_auc": 1.0,
+      "test_pr_auc": 1.0,
+      "test_balanced_acc": 0.9583333333333333,
+      "test_sensitivity": 1.0,
+      "test_specificity": 0.9166666666666666,
+      "test_mcc": 0.95294264700113,
+      "fit_seconds": 4.4
+    },
+    {
+      "model": "Ensemble (soft vote)",
+      "cv_auc_mean": 1.0,
+      "cv_auc_std": 0.0,
+      "test_auc": 1.0,
+      "test_pr_auc": 1.0,
+      "test_balanced_acc": 0.9583333333333333,
+      "test_sensitivity": 1.0,
+      "test_specificity": 0.9166666666666666,
+      "test_mcc": 0.95294264700113,
+      "fit_seconds": 9.4
+    }
+  ],
+  "early_detection": {
+    "n_normal": 61,
+    "n_early_tumor": 387,
+    "cv_auc_mean": 0.9996774193548387,
+    "cv_auc_std": 0.0006451612903225712,
+    "threshold": 0.9751538634300232,
+    "test": {
+      "roc_auc": 1.0,
+      "pr_auc": 1.0,
+      "accuracy": 1.0,
+      "balanced_accuracy": 1.0,
+      "sensitivity": 1.0,
+      "specificity": 1.0,
+      "precision": 1.0,
+      "f1": 1.0,
+      "mcc": 1.0,
+      "threshold": 0.9751538634300232,
+      "tp": 77,
+      "tn": 12,
+      "fp": 0,
+      "fn": 0
+    },
+    "by_stage": [
+      {
+        "stage": "Normal",
+        "n": 12,
+        "detected": 12,
+        "rate": 1.0,
+        "metric": "специфичность",
+        "mean_prob": 0.008681565381339832
+      },
+      {
+        "stage": "I",
+        "n": 15,
+        "detected": 15,
+        "rate": 1.0,
+        "metric": "чувствительность",
+        "mean_prob": 0.9982076485951742
+      },
+      {
+        "stage": "II",
+        "n": 62,
+        "detected": 62,
+        "rate": 1.0,
+        "metric": "чувствительность",
+        "mean_prob": 0.999445068259393
+      }
+    ]
+  },
+  "batch_effect_check": {
+    "mixed_plates": [
+      "A115",
+      "A12D",
+      "A12P",
+      "A137"
+    ],
+    "n_normal": 38,
+    "n_tumor": 189,
+    "cv_auc_mean": 1.0,
+    "cv_auc_std": 0.0,
+    "n_plates_total": 12
+  },
+  "panel_scan": [
+    {
+      "n_genes": 1,
+      "cv_auc_mean": 0.9939545596016185,
+      "cv_auc_std": 0.003087574292730763,
+      "sensitivity": 0.9858156028368794,
+      "specificity": 0.9387755102040817
+    },
+    {
+      "n_genes": 2,
+      "cv_auc_mean": 0.9966181139122317,
+      "cv_auc_std": 0.0039040576539514115,
+      "sensitivity": 0.9929078014184397,
+      "specificity": 0.9387755102040817
+    },
+    {
+      "n_genes": 3,
+      "cv_auc_mean": 1.0,
+      "cv_auc_std": 0.0,
+      "sensitivity": 0.9858156028368794,
+      "specificity": 1.0
+    },
+    {
+      "n_genes": 5,
+      "cv_auc_mean": 1.0,
+      "cv_auc_std": 0.0,
+      "sensitivity": 1.0,
+      "specificity": 1.0
+    },
+    {
+      "n_genes": 10,
+      "cv_auc_mean": 1.0,
+      "cv_auc_std": 0.0,
+      "sensitivity": 1.0,
+      "specificity": 1.0
+    },
+    {
+      "n_genes": 25,
+      "cv_auc_mean": 1.0,
+      "cv_auc_std": 0.0,
+      "sensitivity": 1.0,
+      "specificity": 1.0
+    },
+    {
+      "n_genes": 50,
+      "cv_auc_mean": 1.0,
+      "cv_auc_std": 0.0,
+      "sensitivity": 0.9976359338061466,
+      "specificity": 1.0
+    },
+    {
+      "n_genes": 100,
+      "cv_auc_mean": 1.0,
+      "cv_auc_std": 0.0,
+      "sensitivity": 0.9976359338061466,
+      "specificity": 1.0
+    },
+    {
+      "n_genes": 300,
+      "cv_auc_mean": 1.0,
+      "cv_auc_std": 0.0,
+      "sensitivity": 0.9952718676122931,
+      "specificity": 1.0
+    },
+    {
+      "n_genes": 1000,
+      "cv_auc_mean": 1.0,
+      "cv_auc_std": 0.0,
+      "sensitivity": 0.9952718676122931,
+      "specificity": 1.0
+    }
+  ],
+  "minimal_panel_genes": 3
 }
