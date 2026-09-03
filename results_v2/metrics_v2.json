@@ -1,0 +1,592 @@
+{
+  "dataset": {
+    "source": "recount3 (Monorail, GENCODE v26)",
+    "n_samples": 1406,
+    "n_genes": 15808,
+    "n_healthy": 180,
+    "n_adjacent": 111,
+    "n_tumor": 1115,
+    "female_only": true
+  },
+  "cohort_probe": [
+    {
+      "normalization": "logtpm",
+      "auc": 1.0,
+      "auc_std": 0.0,
+      "n_gtex": 180,
+      "n_tcga": 111
+    },
+    {
+      "normalization": "zsample",
+      "auc": 1.0,
+      "auc_std": 0.0,
+      "n_gtex": 180,
+      "n_tcga": 111
+    },
+    {
+      "normalization": "rank",
+      "auc": 1.0,
+      "auc_std": 0.0,
+      "n_gtex": 180,
+      "n_tcga": 111
+    }
+  ],
+  "naive_model": [
+    {
+      "normalization": "logtpm",
+      "cv_auc": 1.0,
+      "sensitivity": 1.0,
+      "specificity": 1.0
+    },
+    {
+      "normalization": "zsample",
+      "cv_auc": 1.0,
+      "sensitivity": 0.9991031390134529,
+      "specificity": 1.0
+    },
+    {
+      "normalization": "rank",
+      "cv_auc": 1.0,
+      "sensitivity": 0.9991031390134529,
+      "specificity": 1.0
+    }
+  ],
+  "transfer_tcga_to_gtex": [
+    {
+      "normalization": "logtpm",
+      "tcga_cv_auc": 0.9997174995505567,
+      "tcga_sensitivity": 0.9919282511210762,
+      "tcga_specificity": 1.0,
+      "threshold": 0.9067670702934265,
+      "n_healthy": 180,
+      "healthy_flagged": 11,
+      "healthy_false_positive_rate": 0.06111111111111111,
+      "fpr_ci_low": 0.03446271356843876,
+      "fpr_ci_high": 0.10610111238497712,
+      "healthy_mean_risk": 0.1560438722372055
+    },
+    {
+      "normalization": "zsample",
+      "tcga_cv_auc": 0.999758083966141,
+      "tcga_sensitivity": 0.9901345291479821,
+      "tcga_specificity": 1.0,
+      "threshold": 0.8919421434402466,
+      "n_healthy": 180,
+      "healthy_flagged": 6,
+      "healthy_false_positive_rate": 0.03333333333333333,
+      "fpr_ci_low": 0.015364790984832809,
+      "fpr_ci_high": 0.0708043404086727,
+      "healthy_mean_risk": 0.11296412348747253
+    },
+    {
+      "normalization": "rank",
+      "tcga_cv_auc": 0.9996363307193878,
+      "tcga_sensitivity": 0.9955156950672646,
+      "tcga_specificity": 1.0,
+      "threshold": 0.6250823736190796,
+      "n_healthy": 180,
+      "healthy_flagged": 14,
+      "healthy_false_positive_rate": 0.07777777777777778,
+      "fpr_ci_low": 0.046893422637744854,
+      "fpr_ci_high": 0.12630722005161726,
+      "healthy_mean_risk": 0.10330042243003845
+    }
+  ],
+  "transfer_gtex_to_tcga": [
+    {
+      "normalization": "logtpm",
+      "threshold": 0.586891233921051,
+      "n_adjacent": 111,
+      "adjacent_called_tumor": 72,
+      "adjacent_error_rate": 0.6486486486486487,
+      "err_ci_low": 0.5562227910850616,
+      "err_ci_high": 0.7311298804925787,
+      "adjacent_mean_risk": 0.6629447340965271
+    },
+    {
+      "normalization": "zsample",
+      "threshold": 0.2562355697154999,
+      "n_adjacent": 111,
+      "adjacent_called_tumor": 92,
+      "adjacent_error_rate": 0.8288288288288288,
+      "err_ci_low": 0.7480684077980693,
+      "err_ci_high": 0.8875905323585285,
+      "adjacent_mean_risk": 0.7209233045578003
+    },
+    {
+      "normalization": "rank",
+      "threshold": 0.2697131335735321,
+      "n_adjacent": 111,
+      "adjacent_called_tumor": 93,
+      "adjacent_error_rate": 0.8378378378378378,
+      "err_ci_low": 0.7581819919602146,
+      "err_ci_high": 0.8948922616253312,
+      "adjacent_mean_risk": 0.7332867980003357
+    }
+  ],
+  "chosen_normalization": "zsample",
+  "chosen_panel_size": 50,
+  "panel_vs_transfer": [
+    {
+      "normalization": "logtpm",
+      "n_genes": 10,
+      "tcga_cv_auc": 0.998724789970647,
+      "healthy_flagged": 1,
+      "n_healthy": 180,
+      "healthy_fpr": 0.005555555555555556
+    },
+    {
+      "normalization": "logtpm",
+      "n_genes": 25,
+      "tcga_cv_auc": 0.999122681828253,
+      "healthy_flagged": 0,
+      "n_healthy": 180,
+      "healthy_fpr": 0.0
+    },
+    {
+      "normalization": "logtpm",
+      "n_genes": 50,
+      "tcga_cv_auc": 0.9994787644359929,
+      "healthy_flagged": 2,
+      "n_healthy": 180,
+      "healthy_fpr": 0.011111111111111112
+    },
+    {
+      "normalization": "logtpm",
+      "n_genes": 100,
+      "tcga_cv_auc": 0.9997596744257887,
+      "healthy_flagged": 5,
+      "n_healthy": 180,
+      "healthy_fpr": 0.027777777777777776
+    },
+    {
+      "normalization": "logtpm",
+      "n_genes": 200,
+      "tcga_cv_auc": 0.9997174995505567,
+      "healthy_flagged": 11,
+      "n_healthy": 180,
+      "healthy_fpr": 0.06111111111111111
+    },
+    {
+      "normalization": "logtpm",
+      "n_genes": 500,
+      "tcga_cv_auc": 0.9994381800204085,
+      "healthy_flagged": 6,
+      "n_healthy": 180,
+      "healthy_fpr": 0.03333333333333333
+    },
+    {
+      "normalization": "zsample",
+      "n_genes": 10,
+      "tcga_cv_auc": 0.9986623229945515,
+      "healthy_flagged": 2,
+      "n_healthy": 180,
+      "healthy_fpr": 0.011111111111111112
+    },
+    {
+      "normalization": "zsample",
+      "n_genes": 25,
+      "tcga_cv_auc": 0.9991195009089578,
+      "healthy_flagged": 3,
+      "n_healthy": 180,
+      "healthy_fpr": 0.016666666666666666
+    },
+    {
+      "normalization": "zsample",
+      "n_genes": 50,
+      "tcga_cv_auc": 0.9992758423580709,
+      "healthy_flagged": 0,
+      "n_healthy": 180,
+      "healthy_fpr": 0.0
+    },
+    {
+      "normalization": "zsample",
+      "n_genes": 100,
+      "tcga_cv_auc": 0.9996769151349723,
+      "healthy_flagged": 1,
+      "n_healthy": 180,
+      "healthy_fpr": 0.005555555555555556
+    },
+    {
+      "normalization": "zsample",
+      "n_genes": 200,
+      "tcga_cv_auc": 0.999758083966141,
+      "healthy_flagged": 6,
+      "n_healthy": 180,
+      "healthy_fpr": 0.03333333333333333
+    },
+    {
+      "normalization": "zsample",
+      "n_genes": 500,
+      "tcga_cv_auc": 0.9995973367634509,
+      "healthy_flagged": 6,
+      "n_healthy": 180,
+      "healthy_fpr": 0.03333333333333333
+    },
+    {
+      "normalization": "rank",
+      "n_genes": 10,
+      "tcga_cv_auc": 0.999355420729592,
+      "healthy_flagged": 1,
+      "n_healthy": 180,
+      "healthy_fpr": 0.005555555555555556
+    },
+    {
+      "normalization": "rank",
+      "n_genes": 25,
+      "tcga_cv_auc": 0.9993991860644715,
+      "healthy_flagged": 5,
+      "n_healthy": 180,
+      "healthy_fpr": 0.027777777777777776
+    },
+    {
+      "normalization": "rank",
+      "n_genes": 50,
+      "tcga_cv_auc": 0.9995193488515774,
+      "healthy_flagged": 2,
+      "n_healthy": 180,
+      "healthy_fpr": 0.011111111111111112
+    },
+    {
+      "normalization": "rank",
+      "n_genes": 100,
+      "tcga_cv_auc": 0.9995567523478666,
+      "healthy_flagged": 2,
+      "n_healthy": 180,
+      "healthy_fpr": 0.011111111111111112
+    },
+    {
+      "normalization": "rank",
+      "n_genes": 200,
+      "tcga_cv_auc": 0.9996363307193878,
+      "healthy_flagged": 14,
+      "n_healthy": 180,
+      "healthy_fpr": 0.07777777777777778
+    },
+    {
+      "normalization": "rank",
+      "n_genes": 500,
+      "tcga_cv_auc": 0.9993586016488873,
+      "healthy_flagged": 12,
+      "n_healthy": 180,
+      "healthy_fpr": 0.06666666666666667
+    }
+  ],
+  "external_validation": {
+    "n_tumor": 360,
+    "n_normal": 88,
+    "roc_auc": 0.9790404040404042,
+    "roc_auc_ci": [
+      0.9575591856060607,
+      0.9942866161616162
+    ],
+    "sensitivity": 0.9055555555555556,
+    "sens_ci": [
+      0.8709206039156303,
+      0.9316267499413182
+    ],
+    "specificity": 0.9772727272727273,
+    "spec_ci": [
+      0.9208745464473241,
+      0.9937450717361879
+    ],
+    "mean_risk_tumor": 0.9398955217421009,
+    "mean_risk_normal": 0.046349378050722985,
+    "threshold": 0.9882246562542519
+  },
+  "permutation_test": {
+    "observed_auc": 0.9998060885328881,
+    "null_auc_mean": 0.5006345608295899,
+    "null_auc_std": 0.02717677834970789,
+    "null_auc_p95": 0.5431361853241056,
+    "n_permutations": 100,
+    "p_value": 0.009900990099009901
+  },
+  "repeated_cv": {
+    "auc_mean": 0.9998060885328881,
+    "auc_std": 0.00025458403086744014,
+    "auc_p2_5": 0.9990636260361075,
+    "auc_p97_5": 1.0,
+    "auc_min": 0.9989127058092577,
+    "n_estimates": 50
+  },
+  "learning_curve": [
+    {
+      "n_minority": 10,
+      "auc_mean": 0.9985561049263125,
+      "auc_std": 0.001362209260752021,
+      "n_folds": 15
+    },
+    {
+      "n_minority": 20,
+      "auc_mean": 0.9989423161806897,
+      "auc_std": 0.0007766011924685803,
+      "n_folds": 15
+    },
+    {
+      "n_minority": 40,
+      "auc_mean": 0.9992225118327602,
+      "auc_std": 0.0006884607917173604,
+      "n_folds": 15
+    },
+    {
+      "n_minority": 80,
+      "auc_mean": 0.999449909797227,
+      "auc_std": 0.0004592941278735062,
+      "n_folds": 15
+    },
+    {
+      "n_minority": 150,
+      "auc_mean": 0.9996601625136192,
+      "auc_std": 0.0003688214737266368,
+      "n_folds": 15
+    }
+  ],
+  "final_model": {
+    "best_model": "k-NN (k=5)",
+    "threshold": 0.9882246562542519,
+    "holdout": {
+      "roc_auc": 0.9972258113551721,
+      "pr_auc": 0.9989617856441487,
+      "accuracy": 0.9858156028368794,
+      "balanced_accuracy": 0.9910313901345291,
+      "sensitivity": 0.9820627802690582,
+      "specificity": 1.0,
+      "precision": 1.0,
+      "f1": 0.9909502262443439,
+      "mcc": 0.9590149049264161,
+      "threshold": 0.9882246562542519,
+      "tp": 219,
+      "tn": 59,
+      "fp": 0,
+      "fn": 4,
+      "roc_auc_ci": [
+        0.9920954624914494,
+        1.0
+      ],
+      "pr_auc_ci": [
+        0.9970239627212762,
+        1.0
+      ],
+      "sensitivity_ci": [
+        0.9547955128523253,
+        0.9930030117989634
+      ],
+      "specificity_ci": [
+        0.9388706294732116,
+        1.0
+      ],
+      "n_pos": 223,
+      "n_neg": 59
+    },
+    "by_group": [
+      {
+        "group": "healthy",
+        "n": 37,
+        "correct": 37,
+        "rate": 1.0,
+        "ci_low": 0.9059421741627975,
+        "ci_high": 1.0,
+        "mean_risk": 0.030463737266896
+      },
+      {
+        "group": "adjacent",
+        "n": 22,
+        "correct": 22,
+        "rate": 1.0,
+        "ci_low": 0.8513451253913791,
+        "ci_high": 1.0,
+        "mean_risk": 0.037029096323316496
+      },
+      {
+        "group": "tumor",
+        "n": 223,
+        "correct": 219,
+        "rate": 0.9820627802690582,
+        "ci_low": 0.9547955128523253,
+        "ci_high": 0.9930030117989634,
+        "mean_risk": 0.9824485586119567
+      }
+    ],
+    "by_stage": [
+      {
+        "stage": "I",
+        "n": 35,
+        "detected": 34,
+        "rate": 0.9714285714285714,
+        "ci_low": 0.8546691276638632,
+        "ci_high": 0.9949385081445556,
+        "mean_prob": 0.9943908180463499
+      },
+      {
+        "stage": "II",
+        "n": 123,
+        "detected": 122,
+        "rate": 0.991869918699187,
+        "ci_low": 0.9553833739906696,
+        "ci_high": 0.9985633964501233,
+        "mean_prob": 0.986877068316887
+      },
+      {
+        "stage": "III",
+        "n": 51,
+        "detected": 49,
+        "rate": 0.9607843137254902,
+        "ci_low": 0.8678369434463774,
+        "ci_high": 0.9891789166471329,
+        "mean_prob": 0.9603068968865112
+      },
+      {
+        "stage": "IV",
+        "n": 4,
+        "detected": 4,
+        "rate": 1.0,
+        "ci_low": 0.5101091635454027,
+        "ci_high": 1.0,
+        "mean_prob": 0.993590037158841
+      }
+    ],
+    "models": [
+      {
+        "model": "Logistic Regression (L2)",
+        "cv_auc_mean": 0.9998795656174746,
+        "cv_auc_std": 0.000130944976114025,
+        "test_auc": 0.9995439689898913,
+        "test_sensitivity": 0.9865470852017937,
+        "test_specificity": 1.0,
+        "test_mcc": 0.9689225644590159,
+        "fit_seconds": 20.1
+      },
+      {
+        "model": "Logistic Regression (L1)",
+        "cv_auc_mean": 0.9999043748505857,
+        "cv_auc_std": 0.00019125029882860467,
+        "test_auc": 0.9996959793265942,
+        "test_sensitivity": 0.9820627802690582,
+        "test_specificity": 1.0,
+        "test_mcc": 0.9590149049264161,
+        "fit_seconds": 21.6
+      },
+      {
+        "model": "Elastic Net",
+        "cv_auc_mean": 0.9999039916067272,
+        "cv_auc_std": 0.00013946422813793693,
+        "test_auc": 0.9995439689898914,
+        "test_sensitivity": 0.9865470852017937,
+        "test_specificity": 1.0,
+        "test_mcc": 0.9689225644590159,
+        "fit_seconds": 18.3
+      },
+      {
+        "model": "LDA (Ledoit-Wolf)",
+        "cv_auc_mean": 0.9999039916067272,
+        "cv_auc_std": 0.00013946422813793693,
+        "test_auc": 0.9994679638215398,
+        "test_sensitivity": 0.9955156950672646,
+        "test_specificity": 1.0,
+        "test_mcc": 0.9894057644951051,
+        "fit_seconds": 27.1
+      },
+      {
+        "model": "PLS-DA",
+        "cv_auc_mean": 0.9999039916067272,
+        "cv_auc_std": 0.00013946422813793693,
+        "test_auc": 0.9993919586531884,
+        "test_sensitivity": 0.8968609865470852,
+        "test_specificity": 1.0,
+        "test_mcc": 0.8033071748401928,
+        "fit_seconds": 24.9
+      },
+      {
+        "model": "Shrunken Centroids (PAM)",
+        "cv_auc_mean": 0.999565813741975,
+        "cv_auc_std": 0.000348879868500449,
+        "test_auc": 0.9969597932659421,
+        "test_sensitivity": 0.9775784753363229,
+        "test_specificity": 1.0,
+        "test_mcc": 0.9493182590420731,
+        "fit_seconds": 16.5
+      },
+      {
+        "model": "SVM (RBF)",
+        "cv_auc_mean": 0.9994008098407268,
+        "cv_auc_std": 0.0009738328794485451,
+        "test_auc": 0.996275746750779,
+        "test_sensitivity": 0.9865470852017937,
+        "test_specificity": 1.0,
+        "test_mcc": 0.9689225644590159,
+        "fit_seconds": 16.6
+      },
+      {
+        "model": "Random Forest",
+        "cv_auc_mean": 0.9999041251614053,
+        "cv_auc_std": 8.952009579917247e-05,
+        "test_auc": 0.9994679638215398,
+        "test_sensitivity": 0.9955156950672646,
+        "test_specificity": 0.9830508474576272,
+        "test_mcc": 0.9785665425248917,
+        "fit_seconds": 28.4
+      },
+      {
+        "model": "Extra Trees",
+        "cv_auc_mean": 0.9998315004502244,
+        "cv_auc_std": 9.60388216047349e-05,
+        "test_auc": 0.9996199741582428,
+        "test_sensitivity": 0.9865470852017937,
+        "test_specificity": 1.0,
+        "test_mcc": 0.9689225644590159,
+        "fit_seconds": 24.3
+      },
+      {
+        "model": "Gradient Boosting",
+        "cv_auc_mean": 0.9999273781921818,
+        "cv_auc_std": 5.930157916712517e-05,
+        "test_auc": 0.9996199741582428,
+        "test_sensitivity": 0.9865470852017937,
+        "test_specificity": 1.0,
+        "test_mcc": 0.9689225644590159,
+        "fit_seconds": 62.7
+      },
+      {
+        "model": "Naive Bayes",
+        "cv_auc_mean": 0.9912299738389612,
+        "cv_auc_std": 0.012690584023931474,
+        "test_auc": 0.9953636847305618,
+        "test_sensitivity": 0.9865470852017937,
+        "test_specificity": 1.0,
+        "test_mcc": 0.9689225644590159,
+        "fit_seconds": 18.3
+      },
+      {
+        "model": "k-NN (k=5)",
+        "cv_auc_mean": 0.9999760937126464,
+        "cv_auc_std": 4.781257470711786e-05,
+        "test_auc": 0.9953636847305616,
+        "test_sensitivity": 0.9865470852017937,
+        "test_specificity": 1.0,
+        "test_mcc": 0.9689225644590159,
+        "fit_seconds": 16.6
+      },
+      {
+        "model": "Ensemble (soft vote)",
+        "cv_auc_mean": 0.9999034719048282,
+        "cv_auc_std": 8.969721138630624e-05,
+        "test_auc": 0.9994679638215398,
+        "test_sensitivity": 0.9865470852017937,
+        "test_specificity": 1.0,
+        "test_mcc": 0.9689225644590159,
+        "fit_seconds": 35.3
+      },
+      {
+        "model": "Stacking (LR meta)",
+        "cv_auc_mean": 0.9999278978940808,
+        "cv_auc_std": 9.581964545516264e-05,
+        "test_auc": 0.9995439689898914,
+        "test_sensitivity": 0.9910313901345291,
+        "test_specificity": 1.0,
+        "test_mcc": 0.97904982389616,
+        "fit_seconds": 73.4
+      }
+    ]
+  }
+}

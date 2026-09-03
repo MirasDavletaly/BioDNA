@@ -1,0 +1,4 @@
+normalization,auc,auc_std,n_gtex,n_tcga
+logtpm,1.0,0.0,180,111
+zsample,1.0,0.0,180,111
+rank,1.0,0.0,180,111

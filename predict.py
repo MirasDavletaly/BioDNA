@@ -82,10 +82,11 @@ def explain(bundle: dict, samples: pd.DataFrame, sample_id: str, top_n: int = 10
     """Показывает, какие гены-маркеры отклонены у образца и где они лежат в ДНК."""
     markers = bundle["markers"]
     row = samples.loc[sample_id]
+    has_stability = "selection_freq" in markers.columns
 
     print(f"\nВклад маркеров для {sample_id}:")
-    header = f"  {'Ген':<12} {'локус (hg38)':<42} {'значение':>9} {'норма':>8}"
-    print(f"{header} {'опухоль':>9}  тренд")
+    header = f"  {'Ген':<12} {'локус (hg38)':<42} {'значение':>9} {'норма':>8} {'опухоль':>9}"
+    print(f"{header} {'устойч.':>9}  тренд" if has_stability else f"{header}  тренд")
     shown = 0
     for _, m in markers.iterrows():
         if m["gene"] not in row.index or shown >= top_n:
@@ -93,10 +94,19 @@ def explain(bundle: dict, samples: pd.DataFrame, sample_id: str, top_n: int = 10
         val = float(row[m["gene"]])
         # Ближе к какому центроиду лежит образец по этому гену.
         closer = "опухоль" if abs(val - m["mean_tumor"]) < abs(val - m["mean_normal"]) else "норма"
-        locus = str(m["locus"])
-        print(f"  {m['gene']:<12} {locus:<42} {val:>9.3f} "
-              f"{m['mean_normal']:>8.3f} {m['mean_tumor']:>9.3f}  → {closer}")
+        # Устойчивость — доля бутстрапов, в которых ген вообще попадал в панель.
+        # Маркер с частотой 0.4 на новых данных, скорее всего, не повторится,
+        # и опираться на него при трактовке образца не стоит.
+        freq = m.get("selection_freq") if has_stability else None
+        freq_s = f"{freq:>9.2f}" if isinstance(freq, float) and freq == freq else f"{'—':>9}"
+        line = (f"  {m['gene']:<12} {str(m['locus']):<42} {val:>9.3f} "
+                f"{m['mean_normal']:>8.3f} {m['mean_tumor']:>9.3f}")
+        print(f"{line}{freq_s}  → {closer}" if has_stability else f"{line}  → {closer}")
         shown += 1
+
+    if has_stability:
+        print("\n  устойч. — доля бутстрапов по пациентам, в которых ген попал "
+              "в панель;\n  значения ниже 0.6 воспроизводятся плохо.")
 
 
 def self_test(bundle: dict) -> None:

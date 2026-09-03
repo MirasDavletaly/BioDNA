@@ -5,7 +5,9 @@
 по нему GDC отдаёт ajcc_pathologic_stage. Это единственный способ
 честно оценить, ловит ли модель РАННЮЮ стадию (I-II), а не только запущенную.
 
-Результат кэшируется в data/annotation/tcga_stages.csv.
+Результат кэшируется в data/annotation/tcga_stages.csv, а расширенная
+клиника (T/N/M, гистотип, витальный статус, возраст) — в
+data/annotation/tcga_clinical_full.csv.
 """
 
 from __future__ import annotations
@@ -139,6 +141,112 @@ def fetch_stages(barcodes, cache_dir: str | Path, batch_size: int = 150) -> pd.D
                             "III": "late", "IV": "late"}.get(stage, "unknown"),
         })
     return pd.DataFrame(rows).set_index("barcode")
+
+
+# --------------------------------------------------------------------------- #
+#  Расширенная клиника: T / N / M, гистотип, витальный статус, возраст
+# --------------------------------------------------------------------------- #
+CLINICAL_FIELDS = ",".join([
+    "submitter_id",
+    "diagnoses.ajcc_pathologic_stage",
+    "diagnoses.ajcc_pathologic_t",
+    "diagnoses.ajcc_pathologic_n",
+    "diagnoses.ajcc_pathologic_m",
+    "diagnoses.primary_diagnosis",
+    "diagnoses.morphology",
+    "diagnoses.prior_malignancy",
+    "demographic.vital_status",
+    "demographic.days_to_death",
+    "demographic.age_at_index",
+    "demographic.race",
+])
+
+
+def _query_gdc_clinical(patients: list[str], timeout: int = 90) -> list[dict]:
+    payload = {
+        "filters": {"op": "in", "content": {"field": "submitter_id", "value": patients}},
+        "fields": CLINICAL_FIELDS,
+        "format": "JSON",
+        "size": str(len(patients) + 10),
+    }
+    req = urllib.request.Request(
+        GDC_CASES_URL,
+        data=json.dumps(payload).encode(),
+        headers={"Content-Type": "application/json", "User-Agent": "BioDNA/1.0"},
+    )
+    with urllib.request.urlopen(req, timeout=timeout) as resp:
+        hits = json.loads(resp.read().decode()).get("data", {}).get("hits", [])
+
+    rows = []
+    for h in hits:
+        dg = (h.get("diagnoses") or [{}])[0]
+        dm = h.get("demographic") or {}
+        rows.append({
+            "patient": h.get("submitter_id"),
+            "stage": dg.get("ajcc_pathologic_stage"),
+            "T": dg.get("ajcc_pathologic_t"),
+            "N": dg.get("ajcc_pathologic_n"),
+            "M": dg.get("ajcc_pathologic_m"),
+            "primary_diagnosis": dg.get("primary_diagnosis"),
+            "morphology": dg.get("morphology"),
+            "prior_malignancy": dg.get("prior_malignancy"),
+            "vital": dm.get("vital_status"),
+            "days_death": dm.get("days_to_death"),
+            "age": dm.get("age_at_index"),
+            "race": dm.get("race"),
+        })
+    return rows
+
+
+CLINICAL_COLUMNS = ["patient", "stage", "T", "N", "M", "primary_diagnosis",
+                    "morphology", "prior_malignancy", "vital", "days_death",
+                    "age", "race"]
+
+
+def fetch_clinical(barcodes, cache_dir: str | Path, batch_size: int = 120) -> pd.DataFrame:
+    """Расширенная клиническая таблица (индекс — пациент).
+
+    Стадия «норма vs опухоль» на TCGA-BRCA решается идеально любой моделью,
+    поэтому улучшать там нечего. Настоящий запас качества лежит в клинически
+    значимых, но ТРУДНЫХ вопросах: поражены ли лимфоузлы, крупная ли опухоль,
+    протоковый это рак или дольковый. Все ответы есть в GDC — их и тянем.
+
+    Без сети возвращает то, что лежит в кэше, а если кэша нет — пустую
+    таблицу: пайплайн деградирует до базовой задачи, но не падает.
+    """
+    cache_dir = Path(cache_dir)
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    cache = cache_dir / "tcga_clinical_full.csv"
+
+    patients = sorted({patient_id(b) for b in barcodes})
+
+    cached = pd.DataFrame(columns=CLINICAL_COLUMNS)
+    if cache.exists():
+        cached = pd.read_csv(cache)
+        for col in CLINICAL_COLUMNS:
+            if col not in cached.columns:
+                cached[col] = None
+        logger.info(f"Клиника из кэша: {len(cached)} пациентов")
+
+    missing = [p for p in patients if p not in set(cached["patient"])]
+    if missing:
+        logger.info(f"Запрашиваю клинику в GDC API: {len(missing)} пациентов...")
+        fetched = []
+        try:
+            for i in range(0, len(missing), batch_size):
+                fetched.extend(_query_gdc_clinical(missing[i:i + batch_size]))
+                logger.info(f"  {min(i + batch_size, len(missing))}/{len(missing)}")
+            if fetched:
+                cached = pd.concat([cached, pd.DataFrame(fetched)], ignore_index=True)
+                cached = cached.drop_duplicates("patient", keep="last")
+                cached[CLINICAL_COLUMNS].to_csv(cache, index=False)
+        except (urllib.error.URLError, TimeoutError, OSError, ValueError) as exc:
+            logger.warning(f"GDC API недоступен ({exc}) — работаем на кэше")
+
+    if cached.empty:
+        return pd.DataFrame(columns=CLINICAL_COLUMNS[1:],
+                            index=pd.Index([], name="patient"))
+    return cached.drop_duplicates("patient").set_index("patient")
 
 
 if __name__ == "__main__":

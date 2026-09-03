@@ -8,3 +8,13 @@ data/annotation/*.gz
 
 # Обученная модель — воспроизводится через `python train.py`
 models/*.joblib
+
+# Дубликат training.log из фонового запуска
+results/run_stdout.log
+
+# Кэш recount3 (~230 MB) — скачивается автоматически при первом запуске
+# train_cohorts.py; в репозитории ему делать нечего.
+data/recount3/*.gz
+
+# Дубликат лога из фонового запуска v2
+results_v2/run_stdout.txt

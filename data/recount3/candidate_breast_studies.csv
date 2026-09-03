@@ -1,0 +1,122 @@
+project,n_samples,title
+SRP188769,1206,Gene expression analysis of previously treated hormone receptor-positive metastatic breast cancer
+SRP166112,864,Acquired HER2 mutations in ER+ metastatic breast cancer confer resistance to ER-directed therapies
+SRP144041,483,An assessment of prognostic immunity markers in breast cancer
+SRP157974,448,Fudan University Shanghai Cancer Center Triple Negative Breast Cancer (FUSCCTNBC)
+SRP158730,138,Separation of breast cancer and organ microenvironment transcriptomes in metastases
+SRP161704,129,Molecular Determinants of Post-Mastectomy Breast Cancer Recurrence
+SRP155941,124,"Human Tumor-Associated Macrophage and Monocyte Transcriptional Landscapes Reveal Cancer-Specific Reprogramming, Biomarkers, and Therapeutic Targets"
+SRP178543,121,Single-cell RNA sequencing on breast cancer cells enriched for cancer stem cell properties using functional assays
+DRP003950,120,Time-course mRNA expression analysis of human breast cancer MCF-7 cells treated with tamoxifen up to 12 weeks
+SRP117021,108,Transcriptome-wide response to synthetic chromatin protein PcTF: Breast Cancer
+SRP153058,84,RNA expression in BRCA2-depleted breast cancer cell lines
+SRP148163,81,TRPS1 is a lineage-specific transcriptional dependency in breast cancer [Seq]
+SRP127326,71,The influence of PPFIA1 silencing to gene expression in breast carcinoma cell line and head and neck squamous cell carcinoma cell lines by RNA-sequencing in three dimensional collagen I
+SRP128564,70,Role of SUMOylation in differential ERa transcriptional repression by SERMs and pure antiestrogens in breast cancer cells
+SRP191514,64,Impact of a pre-operative exercise intervention on breast cancer proliferation and gene expression
+SRP026537,64,Transcriptional profiling of a breast cancer cell line panel using RNAseq technology
+SRP134389,64,A consensus hypoxia signature in breast cancer
+SRP127579,58,Immortalized breast epithelial cell lines from normal breast with luminal and intrinsic subtypes – enriched gene expression
+ERP108822,48,Expression changes in BRCA1-deficient breast cancer PDX models treated with PARP-inhibitors.
+SRP149433,48,PARP-inhibitors applied to BRCA1-null PDX models
+SRP126145,48,Comparing oestrogen-responsive genes in endometrial and breast cancer cell lines
+SRP126141,48,siRNA-mediated silencing of ORAI3 in MDA-MB-468 breast cancer cells exposed to hypoxia
+SRP157590,47,Transcriptional landscape of non-immune stromal progression in breast tumor microenvironment
+SRP119607,46,Characterizing steroid hormone receptor chromatin binding landscapes in male and female breast cancer
+SRP108616,41,Estrogen signaling is reprogrammed in breast tumorigenesis
+SRP176637,41,Glucocorticoids Promote Breast Cancer Metastasis
+SRP149366,39,Estrogen responsive transcriptome of estrogen receptor positive normal human breast cells in 3D cultures
+ERP112241,36,RNA-seq of human breast cancer cell lines: CAL120; MDAMB468 and BT549 incubated in DMEM-F12 and Plasmax in normoxia (21%O2) and hypoxia (0.1% O2)
+ERP110628,32,MDA-MB-231/1833 bone-metastatic breast cancer cell gene expression after conditioning in conditioned medium from HUVECs conditioned in conditioned medium from static and flow-stimulated MLO-Y4 osteocytes
+SRP118788,32,Hypoxia-mediated translational activation of ITGB3 in breast cancer cells enhances TGF-ß signalling and malignant features in vitro and in vivo 
+ERP113092,30,Variation in RNA expression in a panel of 30 breast cancer cell lines
+SRP163253,29,Development and Characterisation of Acquired Radioresistant Breast Cancer Cell Lines.
+SRP127181,27,Transcriptome Analysis Reveals a Role for Myc in Constitutive and Antiestrogen-resistant Proliferation of Breast Cancer Cells Expressing ERaY537S and ERaD538G Mutations
+SRP166169,26,Estrogen therapy induces an unfolded protein response to drive cell death in ER+ breast cancer
+SRP133840,25,NA
+SRP188447,24,Highly-motile versus unsorted MDA-MB-231 breast cancer cells
+SRP156355,24,Identification of lncRNA in early stage breast cancer and their prognostic implications
+SRP142602,24,RNA-seq analysis of breast cancer
+SRP141444,22,RNAseq of Breast cancer PDX samples
+SRP136721,22,"Targeting tumour re-wiring by triple blockade of mTORC1, epidermal growth factor and estrogen receptor signalling pathways in endocrine resistant breast cancer"
+SRP152870,21,LATS1 and LATS2 suppress breast cancer progression by maintaining cell identity and metabolic state [human]
+SRP133401,21,Expression profiling by RNA-Seq of breast cancer samples from patients in walnut-consuming and control groups
+SRP145507,20,Estrogen receptor and mTOR signaling rewires cancer metabolism in obesity-associated breast cancer
+SRP141118,20,Activating Transcription Factor 4 modulated TGFb-induced aggresiveness in triple negative breast cancer vis SMAD2/3/4 and mTORC2 signaling
+SRP051628,18,Estrogen Receptor Beta Impacts Hormone-Induced Alternative mRNA Splicing in Breast Cancer Cells
+SRP144426,18,Illumina HiSeq Sequencing on Breast cancer PDX samples
+SRP125141,18,TRPS1 shapes YAP/TEAD-dependent transcription in breast cancer cells [RNA-seq]
+SRP124640,18,GRHL2 is a key lineage determining factor which collaborates with FOXA1 to establish a targetable collateral pathway in the setting of endocrine therapy-resistant breast cancer (RNA-Seq data set 2)
+SRP125109,17,RNAseq analysis of ruxolitinib treated breast cancers
+SRP197070,16,MCF-7 as a model for functional analysis of breast cancer risk variants
+SRP200157,15,A transcriptome dataset revealing the molecular features of breast cancer stem cells
+SRP159095,15,Short-term effect of Boost versus Radical doses of Intraoperative electron Radiotherapy in breast cancer tumor bed using high-throughput approaches
+SRP136720,15,Gene expression profile in breast cancer cells
+SRP132902,15,Preclinical model of obesity and ER-positive breast cancer
+SRP194416,12,Gene expression profiling in two dimensional and extracellular matrix based three-dimensional cultures of lung and breast cancer cells
+SRP194127,12,Gene expression analysis of ER+ and ER- breast cancer cell lines with acquired resistance to palbociclib
+SRP045322,12,Integrative transcriptome-wide analyses reveal critical HER2-regulated mRNAs and lincRNAs in HER2+ breast cancer
+SRP044608,12,TNFa Signaling Exposes Latent Estrogen Receptor Binding Sites in Breast Cancer Cells [GRO-seq]
+SRP159023,12,Acquisition of a hybrid E/M state is essential for tumorigenicity of basal breast cancer cells
+SRP150014,12,Cytokine sensitivity screening highlights BMP4 signaling as a therapeutic opportunity in ER+ breast cancer
+SRP124620,12,GRHL2 is a key lineage determining factor which collaborates with FOXA1 to establish a targetable collateral pathway in the setting of endocrine therapy-resistant breast cancer (RNA-Seq data set 1)
+SRP124496,12,ETS1 acts as a tumor suppressor in breast cancer by inhibiting growth-related factors
+SRP117048,12,SILAC identifies LAD1 as an oncogenic filamin binder regulating actin dynamics in response to EGF and marking aggressive breast tumors
+ERP015178,12,Unliganded Estrogen Receptor Beta cooperates with Argonaute 2 in the modulation of transcription rate and splicing of target genes in breast cancer cells. Part 1
+SRP193759,10,Profiling of protrusion-enriched RNAs from human breast cancer cell line MDA-MB-231
+SRP040300,10,Ligand-dependent genomic function of glucocorticoid receptor in triple-negative breast cancer
+SRP133519,10,RNA-sequencing of tamoxifen-resistant and -sensitive breast cancer cell lines.
+SRP167965,9,RNA sequencing of GLO1-depleted MDA-MB-231 breast cancer cells
+SRP136531,9,A SIRT1-centered Circuitry Regulates Breast Cancer Stemness and Metastasis
+ERP022435,9,Unliganded Estrogen Receptor Beta cooperates with Argonaute 2 in the modulation of transcription rate and splicing of target genes in breast cancer cells. Part 4
+SRP192835,8,Drug combination of 17-AAG and Belinostat on MDA-MB-231 breast cancer cells
+SRP179641,8,SREBP1 drives Keratin 80-dependent cytoskeletal changes and invasive behavior in endocrine resistant ERa breast cancer
+SRP163265,8,Next-generation RNA sequencing to determine changes in gene expression during breast cancer progression
+SRP127785,8,RNA sequencing of target knockdown in MDA-MB-231 and Hs578T
+SRP127731,8,Paclitaxel plus Cirmtuzumab Achieves Greater Clearance of Patient-derived Xenografts By Targeting ROR1+ Breast Cancer Stem Cells
+ERP014062,8,Unliganded Estrogen Receptor Beta cooperates with Argonaute 2 in the modulation of transcription rate and splicing of target genes in breast cancer cells.
+SRP148710,7,Homo sapiens Raw sequence reads
+SRP110816,6,RNA-Seq analysis of breast cancer cells after shikonin treatment
+ERP112312,6,RNA-seq of HER2-positive breast cancer BT474 cell line in response to KDM5 ihibition
+SRP164934,6,Vitamin C Promotes Apoptosis in Breast Cancer Cells by Increasing TRAIL Expression
+SRP161520,6,RNA-seq analysis of control and NRDE2-depleted breast cancer cells
+SRP159457,6,Human Adipocytes Regulate Gene Expression in Triple-negative Breast Cancer Assessed by NGS Sequencing
+SRP158607,6,ATO treatment on mesenchymal stem cells (MSCs) interacting breast cancer cells
+DRP004385,6,Gene expression profiles in human breast tumor cell line MCF7
+SRP140592,6,High-throughput RNA sequencing on circular RNA profiles of human triple-negative breast cancer and adjacent normal tissues
+SRP133085,6,RNA sequencing Facilitates Quantitative Analysis of luminal breast cancer cells and basal breast cancer cells Transcriptomes
+SRP131684,6,Comparative Transcriptomics of Triple Negative Breast Cancer Stem Cells and Differentiated Tumor Cells Identifies Teneurin-4 as a Potential Therapeutic Target
+SRP130940,6,Temporal dynamic reorganization of 3D chromatin in hormone-induced breast cancer and endocrine resistance
+SRP126174,6,RNASEQ Analysis of sh-TRC and sh-MIR100HG in the triplex negative breast cancer
+SRP125944,6,IMP3 regulated gene expression in breast cancer cells
+SRP118776,6,Global modulation of signaling pathways by SARM RAD140 in AR/ER+ breast cancer xenografts
+SRP117663,6,5hmC and gene expression data in breast cancer cell lines treated with an antioxidant
+SRP193953,5,Transcriptional changes in the breast cancer cell line MCF7 rendered resistant to the cationic drug siramesine
+SRP042303,5,Targeting c-MYC by antagonizing PP2A inhibitors in breast cancer
+SRP148112,5,RNA-seq profiling of trastuzumab or lapatinib sensitive and resistant SKBR3 breast cancer cells
+SRP158271,5,RNASeq analysis of Adenomyoepitheliomas
+SRP127947,5,Luminal lncRNAs Regulation by ERa-controlled Enhancers in a Ligand-independent Manner in Breast Cancer Cells
+SRP118136,5,Development of Novel Patient Derived Xenografts from Breast Cancer Brain Metastases
+SRP201635,4,"Overexpression of eukaryotic translation initiation factor, eIF4E confers tamoxifen resistance in breast cancer via the ERa/FOXM1 axis"
+SRP194383,4,Overexpression of poly(rC) binding protein 2 by alternative cleavage and polyadenylation promotes breast cancer progression via regulating UFD1 and NT5E
+SRP113228,4,BRCA1-mimetic compound NSC35446.HCl inhits IKKB expression by reducing estrogen receptor alpha occupancy in the IKKB promoter and inhibts NF-?B activity in anti-estrogen resitant human breast cells
+SRP066968,4,Estrogen receptor coregulator binding modulators (ERXs) effectively target estrogen receptor positive human breast cancers
+SRP180303,4,ESRP1 knockdown in breast cancer cells
+SRP170742,4,Thymidylate synthase maintains the de-differentiated state of triple negative breast cancers
+SRP167417,4,Breast cell circRNA Sequance
+SRP131220,4,Transcriptome of organotropic metastatic cancer cells
+SRP127658,4,Genes altered in expression by knockdown of PTK2 in breast cancer cell lines
+SRP124497,4,RNA-Seq analysis to identify novel genes associated with Neuropilin-1 expression in the BT-474 breast cancer cell model
+SRP124462,4,Covalent inhibitor of the Rho family inhibits the migration of breast cancer cells
+SRP116052,4,Role of ß-estradiol in breast cancer.
+SRP200424,3,Global altered gene expression in triple-negative breast cancer tumor samples treated with CDK2 and EZH2 inhibitors
+SRP134738,3,"Next Generation Sequencing Facilitates Quantitative Analysis of a circRNA, hsa_circ_0005505 regulated Transcriptomes in breast cancer cells (MDA-MB-231 lung metastatic cells LM2)"
+SRP125805,3,tRNA-derived small non-coding RNAs (tDRs) as novel predictive biomarkers for trastuzumab-resistant breast cancer.
+SRP118314,3,Transcriptional coregulator NUPR1 maintains tamoxifen resistance in breast cancer cells
+SRP103803,2,Glucose impairs tamoxifen sensitivity modulating CTGF in breast cancer cells
+SRP034657,2,Genome-wide activity of unliganded Estrogen Receptor alpha in breast cancer cells [RNA-Seq]
+ERP109289,2,RNA-Seq of human breast cancer cells MCF7 treated with EPZ004777 or DMSO for 3 or 6 days
+ERP109238,2,"NascentSeq of human breast cancer cell MCF7 treated with EPZ, ICI and DMSO at 3 or 6 days"
+SRP182754,2,Plasminogen activator inhibitor 1 (PAI1) promotes actin cytoskeleton reorganization and glycolytic metabolism in triple negative breast cancer
+SRP119818,2,Suspension of breast cancer cells MDA-MB-231 Transcriptome
+SRP163098,1,Homo_sapiens MCF-7 cells Transcriptome

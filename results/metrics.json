@@ -25,6 +25,351 @@
     "fp": 0,
     "fn": 0
   },
+  "holdout_test_ci": {
+    "roc_auc": 1.0,
+    "roc_auc_ci": [
+      0.9999999999999999,
+      1.0
+    ],
+    "pr_auc": 1.0,
+    "pr_auc_ci": [
+      0.9999999999999999,
+      1.0
+    ],
+    "sensitivity": 1.0,
+    "sensitivity_ci": [
+      0.9650272414265277,
+      1.0
+    ],
+    "specificity": 1.0,
+    "specificity_ci": [
+      0.7575059933447592,
+      1.0
+    ],
+    "n_pos": 106,
+    "n_neg": 12,
+    "tp": 106,
+    "tn": 12,
+    "fp": 0,
+    "fn": 0,
+    "threshold": 0.6428972352080817
+  },
+  "evidence": {
+    "repeated_cv": {
+      "auc_mean": 0.9999381781740273,
+      "auc_std": 0.00026214012824414426,
+      "auc_p2_5": 0.999225888105605,
+      "auc_p97_5": 1.0,
+      "auc_min": 0.9984276729559749,
+      "n_estimates": 50
+    },
+    "permutation": {
+      "observed_auc": 0.9999381781740273,
+      "null_auc_mean": 0.5063091516714342,
+      "null_auc_std": 0.04396164338540632,
+      "null_auc_p95": 0.5768414906291119,
+      "n_permutations": 100,
+      "p_value": 0.009900990099009901
+    },
+    "learning_curve": [
+      {
+        "n_minority": 5,
+        "auc_mean": 1.0,
+        "auc_std": 0.0,
+        "n_folds": 15
+      },
+      {
+        "n_minority": 10,
+        "auc_mean": 0.9997379454926624,
+        "auc_std": 0.000683354549811611,
+        "n_folds": 15
+      },
+      {
+        "n_minority": 15,
+        "auc_mean": 1.0,
+        "auc_std": 0.0,
+        "n_folds": 15
+      },
+      {
+        "n_minority": 20,
+        "auc_mean": 1.0,
+        "auc_std": 0.0,
+        "n_folds": 15
+      },
+      {
+        "n_minority": 30,
+        "auc_mean": 0.9999511599511599,
+        "auc_std": 0.00018274272951276818,
+        "n_folds": 15
+      },
+      {
+        "n_minority": 40,
+        "auc_mean": 1.0,
+        "auc_std": 0.0,
+        "n_folds": 15
+      },
+      {
+        "n_minority": 48,
+        "auc_mean": 0.9999511599511599,
+        "auc_std": 0.00018274272951276818,
+        "n_folds": 15
+      }
+    ],
+    "n_normal_available": 61
+  },
+  "task_landscape": [
+    {
+      "key": "tumor_vs_normal",
+      "title": "Опухоль или норма",
+      "question": "Является ли образец ткани опухолевым?",
+      "n": 590,
+      "n_neg": 61,
+      "n_pos": 529,
+      "neg_label": "норма",
+      "pos_label": "опухоль",
+      "auc_mean": 0.9998427672955975,
+      "auc_fold_mean": 0.9998427672955975,
+      "auc_fold_std": 0.00031446540880506466,
+      "ci_low": 0.9993178437509683,
+      "ci_high": 1.0,
+      "is_control": false,
+      "beats_chance": true,
+      "why": "базовая задача проекта: детекция рака по экспрессии генов",
+      "expected": "задача насыщена — ждём AUC около 1.00 у любой модели",
+      "verdict": "сигнал есть",
+      "top_genes": "ATOH8, GLYAT, CAV1, PAFAH1B3, CD300LG, FXYD1, COL10A1, MMP11",
+      "seconds": 1028.1
+    },
+    {
+      "key": "histology",
+      "title": "Гистотип: протоковый vs дольковый",
+      "question": "Инфильтративный протоковый рак или дольковый?",
+      "n": 470,
+      "n_neg": 428,
+      "n_pos": 42,
+      "neg_label": "протоковый",
+      "pos_label": "дольковый",
+      "auc_mean": 0.911623347013224,
+      "auc_fold_mean": 0.911623347013224,
+      "auc_fold_std": 0.029053083335748693,
+      "ci_low": 0.8595286771250557,
+      "ci_high": 0.9527481085892301,
+      "is_control": false,
+      "beats_chance": true,
+      "why": "дольковый рак хуже виден на маммографии, чаще двусторонний и требует другой тактики визуализации",
+      "expected": "сильный сигнал: дольковый рак теряет CDH1 (E-кадгерин) — ждём AUC около 0.90 и CDH1 в топе маркеров",
+      "verdict": "сигнал есть",
+      "top_genes": "CDH1, GLTSCR2, PGM5, MFAP4, ALDH1A1, C10orf56, RBMS3, TSPAN7",
+      "seconds": 624.0
+    },
+    {
+      "key": "size",
+      "title": "Размер опухоли: T1 vs T2+",
+      "question": "Опухоль до 2 см или крупнее?",
+      "n": 485,
+      "n_neg": 120,
+      "n_pos": 365,
+      "neg_label": "T1 (≤2 см)",
+      "pos_label": "T2+ (>2 см)",
+      "auc_mean": 0.7304794520547945,
+      "auc_fold_mean": 0.7304794520547945,
+      "auc_fold_std": 0.06552093761051837,
+      "ci_low": 0.670533105022831,
+      "ci_high": 0.7804823059360732,
+      "is_control": false,
+      "beats_chance": true,
+      "why": "размер входит в стадию и определяет объём операции",
+      "expected": "умеренный сигнал: размер — характеристика скорее физическая, чем транскрипционная",
+      "verdict": "сигнал есть",
+      "top_genes": "KIF4B, RBBP5, CX3CR1, CCNF, PPP2R5D, TPX2, RRM2, KIF4A",
+      "seconds": 920.3
+    },
+    {
+      "key": "nodal",
+      "title": "Лимфоузлы: N0 vs N+",
+      "question": "Есть ли метастазы в подмышечных лимфоузлах?",
+      "n": 479,
+      "n_neg": 247,
+      "n_pos": 232,
+      "neg_label": "N0 (чисто)",
+      "pos_label": "N+ (поражены)",
+      "auc_mean": 0.644028091902811,
+      "auc_fold_mean": 0.644028091902811,
+      "auc_fold_std": 0.03361766686893705,
+      "ci_low": 0.5923177265112384,
+      "ci_high": 0.6974833781236913,
+      "is_control": false,
+      "beats_chance": true,
+      "why": "САМЫЙ ценный из вопросов: именно статус лимфоузлов решает, делать ли подмышечную лимфодиссекцию — операцию, которая у половины пациенток оказывается лишней и даёт лимфедему",
+      "expected": "слабый сигнал: метастазирование зависит не только от профиля первичной опухоли — ждём AUC 0.62-0.70",
+      "verdict": "сигнал есть",
+      "top_genes": "RWDD3, HIST1H2AG, PRMT7, RGS4, ARRDC1, PBX1, RPL5, TM7SF2",
+      "seconds": 944.8
+    },
+    {
+      "key": "stage",
+      "title": "Стадия: ранняя vs поздняя",
+      "question": "Стадия I-II или III-IV?",
+      "n": 510,
+      "n_neg": 387,
+      "n_pos": 123,
+      "neg_label": "I-II",
+      "pos_label": "III-IV",
+      "auc_mean": 0.5970264180264181,
+      "auc_fold_mean": 0.5970264180264181,
+      "auc_fold_std": 0.06659334819607163,
+      "ci_low": 0.53647980084452,
+      "ci_high": 0.6617844162937753,
+      "is_control": false,
+      "beats_chance": true,
+      "why": "интегральная оценка запущенности процесса",
+      "expected": "слабый сигнал, во многом наследует статус лимфоузлов",
+      "verdict": "сигнал есть",
+      "top_genes": "ASXL2, ACOT8, RBBP8, RANBP2, PBX1, SFRS11, USP34, SEPT10",
+      "seconds": 959.1
+    },
+    {
+      "key": "vital",
+      "title": "Витальный статус (НЕГАТИВНЫЙ КОНТРОЛЬ)",
+      "question": "Жива пациентка на момент последнего наблюдения или нет?",
+      "n": 529,
+      "n_neg": 446,
+      "n_pos": 83,
+      "neg_label": "жива",
+      "pos_label": "умерла",
+      "auc_mean": 0.4911578357934935,
+      "auc_fold_mean": 0.4911578357934935,
+      "auc_fold_std": 0.040988418432277976,
+      "ci_low": 0.43116152952617653,
+      "ci_high": 0.5563202361013561,
+      "is_control": true,
+      "beats_chance": false,
+      "why": "контроль методики: по экспрессии первичной опухоли БЕЗ учёта времени наблюдения и цензурирования предсказывать исход нечем",
+      "expected": "ждём AUC около 0.50 — и это правильный ответ. Если пайплайн выдаст здесь высокое качество, значит он течёт",
+      "verdict": "КОНТРОЛЬ ПРОЙДЕН: сигнала нет, как и ожидалось",
+      "top_genes": "MCEE, MRPS2, MCM9, C19orf56, BCHE, OR10AG1, PRH2, MBD5",
+      "seconds": 995.1
+    }
+  ],
+  "model_delong": [
+    {
+      "model_a": "Logistic Regression (L2)",
+      "model_b": "Logistic Regression (L1)",
+      "auc_a": 0.9999035075022915,
+      "auc_b": 1.0,
+      "delta": -9.649249770848911e-05,
+      "p_value": 0.4140317335903161,
+      "significant": false
+    },
+    {
+      "model_a": "Logistic Regression (L2)",
+      "model_b": "Elastic Net",
+      "auc_a": 0.9999035075022915,
+      "auc_b": 1.0,
+      "delta": -9.649249770848911e-05,
+      "p_value": 0.4140317335903161,
+      "significant": false
+    },
+    {
+      "model_a": "Logistic Regression (L2)",
+      "model_b": "PLS-DA",
+      "auc_a": 0.9999035075022915,
+      "auc_b": 0.9999035075022915,
+      "delta": 0.0,
+      "p_value": 1.0,
+      "significant": false
+    },
+    {
+      "model_a": "Logistic Regression (L2)",
+      "model_b": "Gradient Boosting",
+      "auc_a": 0.9999035075022915,
+      "auc_b": 0.9997587687557292,
+      "delta": 0.00014473874656228958,
+      "p_value": 0.2858875269987995,
+      "significant": false
+    },
+    {
+      "model_a": "Logistic Regression (L2)",
+      "model_b": "SVM (RBF)",
+      "auc_a": 0.9999035075022915,
+      "auc_b": 0.9999035075022915,
+      "delta": 0.0,
+      "p_value": 1.0,
+      "significant": false
+    },
+    {
+      "model_a": "Logistic Regression (L2)",
+      "model_b": "Ensemble (soft vote)",
+      "auc_a": 0.9999035075022915,
+      "auc_b": 0.9999035075022915,
+      "delta": 0.0,
+      "p_value": 1.0,
+      "significant": false
+    },
+    {
+      "model_a": "Logistic Regression (L2)",
+      "model_b": "Stacking (LR meta)",
+      "auc_a": 0.9999035075022915,
+      "auc_b": 0.9999035075022915,
+      "delta": 0.0,
+      "p_value": 1.0,
+      "significant": false
+    },
+    {
+      "model_a": "Logistic Regression (L2)",
+      "model_b": "Extra Trees",
+      "auc_a": 0.9999035075022915,
+      "auc_b": 0.999807015004583,
+      "delta": 9.649249770848911e-05,
+      "p_value": 0.3144869053904522,
+      "significant": false
+    },
+    {
+      "model_a": "Logistic Regression (L2)",
+      "model_b": "Random Forest",
+      "auc_a": 0.9999035075022915,
+      "auc_b": 0.9996622762580207,
+      "delta": 0.0002412312442707787,
+      "p_value": 0.23322002168308442,
+      "significant": false
+    },
+    {
+      "model_a": "Logistic Regression (L2)",
+      "model_b": "k-NN (k=5)",
+      "auc_a": 0.9999035075022915,
+      "auc_b": 0.9984561200366668,
+      "delta": 0.0014473874656246721,
+      "p_value": 0.25419814228241067,
+      "significant": false
+    },
+    {
+      "model_a": "Logistic Regression (L2)",
+      "model_b": "Naive Bayes",
+      "auc_a": 0.9999035075022915,
+      "auc_b": 0.9951271288657306,
+      "delta": 0.004776378636560885,
+      "p_value": 0.042708475911907406,
+      "significant": true
+    },
+    {
+      "model_a": "Logistic Regression (L2)",
+      "model_b": "Shrunken Centroids (PAM)",
+      "auc_a": 0.9999035075022915,
+      "auc_b": 0.9893617021276588,
+      "delta": 0.010541805374632673,
+      "p_value": 0.002468058030835385,
+      "significant": true
+    },
+    {
+      "model_a": "Logistic Regression (L2)",
+      "model_b": "LDA (Ledoit-Wolf)",
+      "auc_a": 0.9999035075022915,
+      "auc_b": 0.9897476721184928,
+      "delta": 0.010155835383798717,
+      "p_value": 0.31732417896122733,
+      "significant": false
+    }
+  ],
   "by_stage": [
     {
       "stage": "Normal",
@@ -90,7 +435,7 @@
       "test_sensitivity": 1.0,
       "test_specificity": 1.0,
       "test_mcc": 1.0,
-      "fit_seconds": 4.4
+      "fit_seconds": 9.0
     },
     {
       "model": "Logistic Regression (L1)",
@@ -102,7 +447,55 @@
       "test_sensitivity": 1.0,
       "test_specificity": 1.0,
       "test_mcc": 1.0,
-      "fit_seconds": 4.3
+      "fit_seconds": 9.7
+    },
+    {
+      "model": "Elastic Net",
+      "cv_auc_mean": 1.0,
+      "cv_auc_std": 0.0,
+      "test_auc": 1.0,
+      "test_pr_auc": 1.0,
+      "test_balanced_acc": 1.0,
+      "test_sensitivity": 1.0,
+      "test_specificity": 1.0,
+      "test_mcc": 1.0,
+      "fit_seconds": 13.3
+    },
+    {
+      "model": "LDA (Ledoit-Wolf)",
+      "cv_auc_mean": 0.9888888888888889,
+      "cv_auc_std": 0.022222222222222233,
+      "test_auc": 1.0,
+      "test_pr_auc": 1.0,
+      "test_balanced_acc": 1.0,
+      "test_sensitivity": 1.0,
+      "test_specificity": 1.0,
+      "test_mcc": 1.0,
+      "fit_seconds": 7.9
+    },
+    {
+      "model": "PLS-DA",
+      "cv_auc_mean": 1.0,
+      "cv_auc_std": 0.0,
+      "test_auc": 1.0,
+      "test_pr_auc": 1.0,
+      "test_balanced_acc": 0.929245283018868,
+      "test_sensitivity": 0.8584905660377359,
+      "test_specificity": 1.0,
+      "test_mcc": 0.6176984399231054,
+      "fit_seconds": 8.7
+    },
+    {
+      "model": "Shrunken Centroids (PAM)",
+      "cv_auc_mean": 0.9893417366946778,
+      "cv_auc_std": 0.005821076062003246,
+      "test_auc": 0.9886006289308175,
+      "test_pr_auc": 0.9983039364972612,
+      "test_balanced_acc": 0.934748427672956,
+      "test_sensitivity": 0.9528301886792453,
+      "test_specificity": 0.9166666666666666,
+      "test_mcc": 0.7676292132770449,
+      "fit_seconds": 8.8
     },
     {
       "model": "SVM (RBF)",
@@ -114,7 +507,7 @@
       "test_sensitivity": 1.0,
       "test_specificity": 0.9166666666666666,
       "test_mcc": 0.95294264700113,
-      "fit_seconds": 4.4
+      "fit_seconds": 8.6
     },
     {
       "model": "Random Forest",
@@ -126,7 +519,7 @@
       "test_sensitivity": 1.0,
       "test_specificity": 0.9166666666666666,
       "test_mcc": 0.95294264700113,
-      "fit_seconds": 9.2
+      "fit_seconds": 17.2
     },
     {
       "model": "Extra Trees",
@@ -138,7 +531,7 @@
       "test_sensitivity": 1.0,
       "test_specificity": 0.9166666666666666,
       "test_mcc": 0.95294264700113,
-      "fit_seconds": 7.2
+      "fit_seconds": 12.1
     },
     {
       "model": "Gradient Boosting",
@@ -150,7 +543,7 @@
       "test_sensitivity": 1.0,
       "test_specificity": 0.9166666666666666,
       "test_mcc": 0.95294264700113,
-      "fit_seconds": 126.1
+      "fit_seconds": 183.4
     },
     {
       "model": "Naive Bayes",
@@ -162,7 +555,7 @@
       "test_sensitivity": 0.9905660377358491,
       "test_specificity": 0.9166666666666666,
       "test_mcc": 0.9072327044025157,
-      "fit_seconds": 4.3
+      "fit_seconds": 7.6
     },
     {
       "model": "k-NN (k=5)",
@@ -174,7 +567,7 @@
       "test_sensitivity": 1.0,
       "test_specificity": 0.9166666666666666,
       "test_mcc": 0.95294264700113,
-      "fit_seconds": 4.4
+      "fit_seconds": 8.1
     },
     {
       "model": "Ensemble (soft vote)",
@@ -186,7 +579,19 @@
       "test_sensitivity": 1.0,
       "test_specificity": 0.9166666666666666,
       "test_mcc": 0.95294264700113,
-      "fit_seconds": 9.4
+      "fit_seconds": 15.6
+    },
+    {
+      "model": "Stacking (LR meta)",
+      "cv_auc_mean": 1.0,
+      "cv_auc_std": 0.0,
+      "test_auc": 1.0,
+      "test_pr_auc": 1.0,
+      "test_balanced_acc": 0.9583333333333333,
+      "test_sensitivity": 1.0,
+      "test_specificity": 0.9166666666666666,
+      "test_mcc": 0.95294264700113,
+      "fit_seconds": 41.3
     }
   ],
   "early_detection": {
@@ -209,7 +614,25 @@
       "tp": 77,
       "tn": 12,
       "fp": 0,
-      "fn": 0
+      "fn": 0,
+      "roc_auc_ci": [
+        0.9999999999999999,
+        1.0
+      ],
+      "pr_auc_ci": [
+        0.9999999999999999,
+        1.0
+      ],
+      "sensitivity_ci": [
+        0.9524815747175658,
+        0.9999999999999999
+      ],
+      "specificity_ci": [
+        0.7575059933447592,
+        1.0
+      ],
+      "n_pos": 77,
+      "n_neg": 12
     },
     "by_stage": [
       {
@@ -251,19 +674,54 @@
     "cv_auc_std": 0.0,
     "n_plates_total": 12
   },
+  "plate_holdout": {
+    "per_plate": [
+      {
+        "plate": "A115",
+        "n_test": 92,
+        "n_normal": 5,
+        "n_tumor": 87,
+        "roc_auc": 0.9954022988505747
+      },
+      {
+        "plate": "A12D",
+        "n_test": 60,
+        "n_normal": 16,
+        "n_tumor": 44,
+        "roc_auc": 1.0
+      },
+      {
+        "plate": "A12P",
+        "n_test": 53,
+        "n_normal": 11,
+        "n_tumor": 42,
+        "roc_auc": 1.0
+      },
+      {
+        "plate": "A137",
+        "n_test": 22,
+        "n_normal": 6,
+        "n_tumor": 16,
+        "roc_auc": 1.0
+      }
+    ],
+    "mean_auc": 0.9988505747126437,
+    "min_auc": 0.9954022988505747,
+    "n_plates_tested": 4
+  },
   "panel_scan": [
     {
       "n_genes": 1,
       "cv_auc_mean": 0.9939545596016185,
       "cv_auc_std": 0.003087574292730763,
-      "sensitivity": 0.9858156028368794,
+      "sensitivity": 0.983451536643026,
       "specificity": 0.9387755102040817
     },
     {
       "n_genes": 2,
       "cv_auc_mean": 0.9966181139122317,
       "cv_auc_std": 0.0039040576539514115,
-      "sensitivity": 0.9929078014184397,
+      "sensitivity": 0.9881796690307328,
       "specificity": 0.9387755102040817
     },
     {
@@ -271,7 +729,7 @@
       "cv_auc_mean": 1.0,
       "cv_auc_std": 0.0,
       "sensitivity": 0.9858156028368794,
-      "specificity": 1.0
+      "specificity": 0.9795918367346939
     },
     {
       "n_genes": 5,
@@ -284,21 +742,21 @@
       "n_genes": 10,
       "cv_auc_mean": 1.0,
       "cv_auc_std": 0.0,
-      "sensitivity": 1.0,
+      "sensitivity": 0.9929078014184397,
       "specificity": 1.0
     },
     {
       "n_genes": 25,
       "cv_auc_mean": 1.0,
       "cv_auc_std": 0.0,
-      "sensitivity": 1.0,
+      "sensitivity": 0.9976359338061466,
       "specificity": 1.0
     },
     {
       "n_genes": 50,
       "cv_auc_mean": 1.0,
       "cv_auc_std": 0.0,
-      "sensitivity": 0.9976359338061466,
+      "sensitivity": 0.9952718676122931,
       "specificity": 1.0
     },
     {
@@ -323,5 +781,357 @@
       "specificity": 1.0
     }
   ],
-  "minimal_panel_genes": 3
+  "minimal_panel_genes": 3,
+  "gene_stability_top": [
+    {
+      "gene": "ATOH8",
+      "selection_freq": 1.0,
+      "direction_consistency": 1.0,
+      "times_selected": 200,
+      "n_bootstraps": 200
+    },
+    {
+      "gene": "CD300LG",
+      "selection_freq": 1.0,
+      "direction_consistency": 1.0,
+      "times_selected": 200,
+      "n_bootstraps": 200
+    },
+    {
+      "gene": "MYOC",
+      "selection_freq": 1.0,
+      "direction_consistency": 1.0,
+      "times_selected": 200,
+      "n_bootstraps": 200
+    },
+    {
+      "gene": "CAV1",
+      "selection_freq": 1.0,
+      "direction_consistency": 1.0,
+      "times_selected": 200,
+      "n_bootstraps": 200
+    },
+    {
+      "gene": "STARD9",
+      "selection_freq": 1.0,
+      "direction_consistency": 1.0,
+      "times_selected": 200,
+      "n_bootstraps": 200
+    },
+    {
+      "gene": "AQP7",
+      "selection_freq": 1.0,
+      "direction_consistency": 1.0,
+      "times_selected": 200,
+      "n_bootstraps": 200
+    },
+    {
+      "gene": "C1QTNF9",
+      "selection_freq": 1.0,
+      "direction_consistency": 1.0,
+      "times_selected": 200,
+      "n_bootstraps": 200
+    },
+    {
+      "gene": "NEK2",
+      "selection_freq": 1.0,
+      "direction_consistency": 1.0,
+      "times_selected": 200,
+      "n_bootstraps": 200
+    },
+    {
+      "gene": "LOC387911",
+      "selection_freq": 1.0,
+      "direction_consistency": 1.0,
+      "times_selected": 200,
+      "n_bootstraps": 200
+    },
+    {
+      "gene": "BTNL9",
+      "selection_freq": 1.0,
+      "direction_consistency": 1.0,
+      "times_selected": 200,
+      "n_bootstraps": 200
+    },
+    {
+      "gene": "MMP11",
+      "selection_freq": 1.0,
+      "direction_consistency": 1.0,
+      "times_selected": 200,
+      "n_bootstraps": 200
+    },
+    {
+      "gene": "CA4",
+      "selection_freq": 1.0,
+      "direction_consistency": 1.0,
+      "times_selected": 200,
+      "n_bootstraps": 200
+    },
+    {
+      "gene": "HSPB6",
+      "selection_freq": 1.0,
+      "direction_consistency": 1.0,
+      "times_selected": 200,
+      "n_bootstraps": 200
+    },
+    {
+      "gene": "PAFAH1B3",
+      "selection_freq": 1.0,
+      "direction_consistency": 1.0,
+      "times_selected": 200,
+      "n_bootstraps": 200
+    },
+    {
+      "gene": "IGFBP6",
+      "selection_freq": 1.0,
+      "direction_consistency": 1.0,
+      "times_selected": 200,
+      "n_bootstraps": 200
+    },
+    {
+      "gene": "FXYD1",
+      "selection_freq": 1.0,
+      "direction_consistency": 1.0,
+      "times_selected": 200,
+      "n_bootstraps": 200
+    },
+    {
+      "gene": "GLYAT",
+      "selection_freq": 1.0,
+      "direction_consistency": 1.0,
+      "times_selected": 200,
+      "n_bootstraps": 200
+    },
+    {
+      "gene": "COL10A1",
+      "selection_freq": 1.0,
+      "direction_consistency": 1.0,
+      "times_selected": 200,
+      "n_bootstraps": 200
+    },
+    {
+      "gene": "LRRC3B",
+      "selection_freq": 1.0,
+      "direction_consistency": 1.0,
+      "times_selected": 200,
+      "n_bootstraps": 200
+    },
+    {
+      "gene": "TSLP",
+      "selection_freq": 1.0,
+      "direction_consistency": 1.0,
+      "times_selected": 200,
+      "n_bootstraps": 200
+    },
+    {
+      "gene": "SDPR",
+      "selection_freq": 0.995,
+      "direction_consistency": 1.0,
+      "times_selected": 199,
+      "n_bootstraps": 200
+    },
+    {
+      "gene": "IGSF10",
+      "selection_freq": 0.995,
+      "direction_consistency": 1.0,
+      "times_selected": 199,
+      "n_bootstraps": 200
+    },
+    {
+      "gene": "CPA1",
+      "selection_freq": 0.99,
+      "direction_consistency": 1.0,
+      "times_selected": 198,
+      "n_bootstraps": 200
+    },
+    {
+      "gene": "DMD",
+      "selection_freq": 0.98,
+      "direction_consistency": 1.0,
+      "times_selected": 196,
+      "n_bootstraps": 200
+    },
+    {
+      "gene": "HSD17B13",
+      "selection_freq": 0.98,
+      "direction_consistency": 1.0,
+      "times_selected": 196,
+      "n_bootstraps": 200
+    },
+    {
+      "gene": "GPAM",
+      "selection_freq": 0.975,
+      "direction_consistency": 1.0,
+      "times_selected": 195,
+      "n_bootstraps": 200
+    },
+    {
+      "gene": "CXCL2",
+      "selection_freq": 0.96,
+      "direction_consistency": 1.0,
+      "times_selected": 192,
+      "n_bootstraps": 200
+    },
+    {
+      "gene": "FIGF",
+      "selection_freq": 0.955,
+      "direction_consistency": 1.0,
+      "times_selected": 191,
+      "n_bootstraps": 200
+    },
+    {
+      "gene": "KLF15",
+      "selection_freq": 0.945,
+      "direction_consistency": 1.0,
+      "times_selected": 189,
+      "n_bootstraps": 200
+    },
+    {
+      "gene": "FLJ90650",
+      "selection_freq": 0.935,
+      "direction_consistency": 1.0,
+      "times_selected": 187,
+      "n_bootstraps": 200
+    },
+    {
+      "gene": "RBP4",
+      "selection_freq": 0.885,
+      "direction_consistency": 1.0,
+      "times_selected": 177,
+      "n_bootstraps": 200
+    },
+    {
+      "gene": "ANGPTL7",
+      "selection_freq": 0.855,
+      "direction_consistency": 1.0,
+      "times_selected": 171,
+      "n_bootstraps": 200
+    },
+    {
+      "gene": "ITIH5",
+      "selection_freq": 0.855,
+      "direction_consistency": 1.0,
+      "times_selected": 171,
+      "n_bootstraps": 200
+    },
+    {
+      "gene": "AVPR2",
+      "selection_freq": 0.84,
+      "direction_consistency": 1.0,
+      "times_selected": 168,
+      "n_bootstraps": 200
+    },
+    {
+      "gene": "LEPR",
+      "selection_freq": 0.81,
+      "direction_consistency": 1.0,
+      "times_selected": 162,
+      "n_bootstraps": 200
+    },
+    {
+      "gene": "RDH5",
+      "selection_freq": 0.745,
+      "direction_consistency": 1.0,
+      "times_selected": 149,
+      "n_bootstraps": 200
+    },
+    {
+      "gene": "MME",
+      "selection_freq": 0.72,
+      "direction_consistency": 1.0,
+      "times_selected": 144,
+      "n_bootstraps": 200
+    },
+    {
+      "gene": "CES1",
+      "selection_freq": 0.715,
+      "direction_consistency": 1.0,
+      "times_selected": 143,
+      "n_bootstraps": 200
+    },
+    {
+      "gene": "ALDH1L1",
+      "selection_freq": 0.705,
+      "direction_consistency": 1.0,
+      "times_selected": 141,
+      "n_bootstraps": 200
+    },
+    {
+      "gene": "CAV2",
+      "selection_freq": 0.66,
+      "direction_consistency": 1.0,
+      "times_selected": 132,
+      "n_bootstraps": 200
+    },
+    {
+      "gene": "COL11A1",
+      "selection_freq": 0.605,
+      "direction_consistency": 1.0,
+      "times_selected": 121,
+      "n_bootstraps": 200
+    },
+    {
+      "gene": "CEP55",
+      "selection_freq": 0.595,
+      "direction_consistency": 1.0,
+      "times_selected": 119,
+      "n_bootstraps": 200
+    },
+    {
+      "gene": "ACVR1C",
+      "selection_freq": 0.59,
+      "direction_consistency": 1.0,
+      "times_selected": 118,
+      "n_bootstraps": 200
+    },
+    {
+      "gene": "ARHGAP20",
+      "selection_freq": 0.585,
+      "direction_consistency": 1.0,
+      "times_selected": 117,
+      "n_bootstraps": 200
+    },
+    {
+      "gene": "ADAMTS5",
+      "selection_freq": 0.575,
+      "direction_consistency": 1.0,
+      "times_selected": 115,
+      "n_bootstraps": 200
+    },
+    {
+      "gene": "F10",
+      "selection_freq": 0.525,
+      "direction_consistency": 1.0,
+      "times_selected": 105,
+      "n_bootstraps": 200
+    },
+    {
+      "gene": "WISP1",
+      "selection_freq": 0.495,
+      "direction_consistency": 1.0,
+      "times_selected": 99,
+      "n_bootstraps": 200
+    },
+    {
+      "gene": "SPRY2",
+      "selection_freq": 0.455,
+      "direction_consistency": 1.0,
+      "times_selected": 91,
+      "n_bootstraps": 200
+    },
+    {
+      "gene": "FHL1",
+      "selection_freq": 0.455,
+      "direction_consistency": 1.0,
+      "times_selected": 91,
+      "n_bootstraps": 200
+    },
+    {
+      "gene": "HBA2",
+      "selection_freq": 0.445,
+      "direction_consistency": 1.0,
+      "times_selected": 89,
+      "n_bootstraps": 200
+    }
+  ]
 }
