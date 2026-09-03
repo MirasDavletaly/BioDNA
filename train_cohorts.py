@@ -90,7 +90,13 @@ NORMALIZATIONS = ("logtpm", "zsample", "rank")
 PROBE_MODEL = "Logistic Regression (L2)"
 
 
-def setup_logging() -> None:
+def setup_logging(overwrite: bool = True) -> None:
+    """overwrite=False для --report-only.
+
+    Полный прогон начинает лог с чистого листа, а перегенерация отчёта не должна
+    затирать лог обучения: она занимает секунду и не содержит ничего, ради чего
+    стоило бы терять час записей.
+    """
     RESULTS_DIR.mkdir(exist_ok=True)
     for stream in (sys.stdout, sys.stderr):
         if hasattr(stream, "reconfigure"):
@@ -100,7 +106,8 @@ def setup_logging() -> None:
         format="%(asctime)s [%(levelname)s] %(message)s",
         handlers=[
             logging.StreamHandler(sys.stdout),
-            logging.FileHandler(RESULTS_DIR / "training_v2.log", mode="w", encoding="utf-8"),
+            logging.FileHandler(RESULTS_DIR / "training_v2.log",
+                                mode="w" if overwrite else "a", encoding="utf-8"),
         ],
         force=True,
     )
@@ -807,7 +814,7 @@ def main() -> None:
                         help="перегенерировать отчёт из сохранённых результатов")
     args = parser.parse_args()
 
-    setup_logging()
+    setup_logging(overwrite=not args.report_only)
     if args.report_only:
         rebuild_report(args)
         return
