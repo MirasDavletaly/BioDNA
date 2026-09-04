@@ -248,42 +248,90 @@ def plot_panel_transfer(sweep: pd.DataFrame, results_dir, chosen_norm: str,
     _save(fig, results_dir, "07_panel_vs_transfer.png")
 
 
-def plot_external(ext: dict, results_dir) -> None:
-    """Распределение риска на внешней когорте FUSCC (Шанхай)."""
+def plot_external(ext: dict, results_dir, index: int = 0) -> None:
+    """Внешняя когорта: распределение риска и качество по подгруппам."""
     pred = ext.get("predictions")
     if pred is None or not len(pred):
         return
     thr = ext["threshold"]
+    subs = ext["by_subgroup"]
 
-    fig, axes = plt.subplots(1, 2, figsize=(13, 5))
+    fig, axes = plt.subplots(1, 2, figsize=(14, 5.2))
     bins = np.linspace(0, 1, 41)
-    tum = pred[pred["label"] == 1]["risk"]
-    nor = pred[pred["label"] == 0]["risk"]
+    palette = plt.cm.tab10.colors
 
-    axes[0].hist(nor, bins=bins, alpha=0.75, color=GROUP_C["adjacent"],
-                 label=f"Норма FUSCC (n={len(nor)})")
-    axes[0].hist(tum, bins=bins, alpha=0.75, color=GROUP_C["tumor"],
-                 label=f"Опухоль TNBC (n={len(tum)})")
+    for i, r in enumerate(subs):
+        d = pred[pred["subgroup"] == r["subgroup"]]["risk"]
+        axes[0].hist(d, bins=bins, alpha=0.7, color=palette[i % 10],
+                     label=f"{r['subgroup']} (n={r['n']})")
     axes[0].axvline(thr, color=ACCENT, ls="--", lw=1.8, label="порог из обучения")
     axes[0].set_xlabel("Оценка риска P(опухоль)")
     axes[0].set_ylabel("Число образцов")
-    axes[0].set_title("Внешняя когорта: Шанхай, FUSCC")
+    axes[0].set_title("Распределение риска")
+    axes[0].legend(fontsize=8)
+
+    labels = [r["subgroup"].replace(" (", "\n(") for r in subs]
+    vals = [r["rate"] if r["rate"] is not None else r["flagged_rate"] for r in subs]
+    colors = [GROUP_C["tumor"] if r["label"] == 1 else
+              (GROUP_C["adjacent"] if r["label"] == 0 else ACCENT) for r in subs]
+    bars = axes[1].bar(labels, vals, color=colors, edgecolor="white")
+    axes[1].set_ylim(0, 1.14)
+    axes[1].set_ylabel("Доля")
+    axes[1].tick_params(axis="x", labelsize=8)
+    for bar, v, r in zip(bars, vals, subs):
+        tag = "верно" if r["label"] is not None else "помечено раком"
+        axes[1].text(bar.get_x() + bar.get_width() / 2, v + 0.03,
+                     f"{v:.1%}\n{tag}", ha="center", fontsize=8)
+
+    auc = ext.get("metrics", {}).get("roc_auc")
+    auc_txt = f", AUC {auc:.4f}" if auc else ""
+    axes[1].set_title(f"По подгруппам{auc_txt}")
+
+    fig.suptitle(ext["title"], fontsize=12, fontweight="bold")
+    fig.tight_layout()
+    _save(fig, results_dir, f"0{8 + index}_external_{ext['cohort'].lower()}.png")
+
+
+def plot_progression(spec: dict, results_dir, threshold: float) -> None:
+    """Оценка риска вдоль прогрессии: норма -> неоплазия -> DCIS -> инвазия.
+
+    Модель обучалась только на крайних точках этого ряда. Промежуточные
+    состояния она видит впервые, и их расположение показывает, что именно
+    она выучила: границу «опухоль или нет» или непрерывную шкалу тяжести.
+    """
+    pred = spec.get("predictions")
+    if pred is None or not len(pred):
+        return
+    order = [r["subgroup"] for r in spec["by_subgroup"]]
+    palette = {"норма": "#27AE60", "ранняя неоплазия": "#F1C40F",
+               "DCIS (рак на месте)": "#E67E22", "инвазивная карцинома": "#C0392B"}
+
+    fig, axes = plt.subplots(1, 2, figsize=(14, 5.4))
+
+    sns.boxplot(data=pred, x="subgroup", y="risk", order=order, hue="subgroup",
+                legend=False, palette=palette, ax=axes[0], width=0.55, fliersize=0)
+    sns.stripplot(data=pred, x="subgroup", y="risk", order=order,
+                  color="black", alpha=0.5, size=4, ax=axes[0])
+    axes[0].axhline(threshold, color=ACCENT, ls="--", lw=1.8, label="порог решения")
+    axes[0].set_xlabel("")
+    axes[0].set_ylabel("Оценка риска P(опухоль)")
+    axes[0].set_title("Риск растёт вместе с тяжестью поражения")
+    axes[0].tick_params(axis="x", rotation=18, labelsize=9)
     axes[0].legend(fontsize=9)
 
-    labels = ["Чувствительность\n(опухоли)", "Специфичность\n(нормы)"]
-    vals = [ext["sensitivity"], ext["specificity"]]
-    cis = [ext["sens_ci"], ext["spec_ci"]]
-    err = [[v - c[0] for v, c in zip(vals, cis)], [c[1] - v for v, c in zip(vals, cis)]]
-    bars = axes[1].bar(labels, vals, yerr=err, capsize=6,
-                       color=[GROUP_C["tumor"], GROUP_C["adjacent"]], edgecolor="white")
-    axes[1].set_ylim(0, 1.12)
-    axes[1].set_ylabel("Доля")
-    axes[1].set_title(f"Качество на невиданной когорте (AUC {ext['roc_auc']:.4f})")
-    for bar, v in zip(bars, vals):
-        axes[1].text(bar.get_x() + bar.get_width() / 2, v + 0.04, f"{v:.1%}",
-                     ha="center", fontsize=10, fontweight="bold")
+    rates = [r["flagged_rate"] for r in spec["by_subgroup"]]
+    ns = [r["n"] for r in spec["by_subgroup"]]
+    bars = axes[1].bar(order, rates, color=[palette.get(o, "#888") for o in order],
+                       edgecolor="white")
+    axes[1].set_ylim(0, 1.14)
+    axes[1].set_ylabel("Доля образцов, помеченных как опухоль")
+    axes[1].set_title("Что модель называет раком")
+    axes[1].tick_params(axis="x", rotation=18, labelsize=9)
+    for bar, v, n in zip(bars, rates, ns):
+        axes[1].text(bar.get_x() + bar.get_width() / 2, v + 0.03,
+                     f"{v:.0%}\nn={n}", ha="center", fontsize=9)
 
-    fig.suptitle("Проверка на третьей когорте, которой модель не видела",
-                 fontsize=13, fontweight="bold")
+    fig.suptitle("Доброкачественное, предраковое и инвазивное: модель видит их впервые",
+                 fontsize=12, fontweight="bold")
     fig.tight_layout()
-    _save(fig, results_dir, "08_external_fuscc.png")
+    _save(fig, results_dir, "10_progression_spectrum.png")

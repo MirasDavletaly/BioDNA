@@ -272,27 +272,261 @@
       "healthy_fpr": 0.06666666666666667
     }
   ],
-  "external_validation": {
-    "n_tumor": 360,
-    "n_normal": 88,
-    "roc_auc": 0.9790404040404042,
-    "roc_auc_ci": [
-      0.9575591856060607,
-      0.9942866161616162
-    ],
-    "sensitivity": 0.9055555555555556,
-    "sens_ci": [
-      0.8709206039156303,
-      0.9316267499413182
-    ],
-    "specificity": 0.9772727272727273,
-    "spec_ci": [
-      0.9208745464473241,
-      0.9937450717361879
-    ],
-    "mean_risk_tumor": 0.9398955217421009,
-    "mean_risk_normal": 0.046349378050722985,
-    "threshold": 0.9882246562542519
+  "external_validation": [
+    {
+      "cohort": "FUSCC",
+      "title": "FUSCC, Шанхай — трижды-негативный рак",
+      "n_samples": 448,
+      "threshold": 0.9882246562542519,
+      "metrics": {
+        "roc_auc": 0.9790404040404042,
+        "pr_auc": 0.9906854560222997,
+        "accuracy": 0.9196428571428571,
+        "balanced_accuracy": 0.9414141414141415,
+        "sensitivity": 0.9055555555555556,
+        "specificity": 0.9772727272727273,
+        "precision": 0.9939024390243902,
+        "f1": 0.9476744186046512,
+        "mcc": 0.7920293576680504,
+        "threshold": 0.9882246562542519,
+        "tp": 326,
+        "tn": 86,
+        "fp": 2,
+        "fn": 34,
+        "roc_auc_ci": [
+          0.9575591856060607,
+          0.9942866161616162
+        ],
+        "pr_auc_ci": [
+          0.9806274099804028,
+          0.9978019420058526
+        ],
+        "sensitivity_ci": [
+          0.8709206039156303,
+          0.9316267499413182
+        ],
+        "specificity_ci": [
+          0.9208745464473241,
+          0.9937450717361879
+        ],
+        "n_pos": 360,
+        "n_neg": 88
+      },
+      "by_subgroup": [
+        {
+          "subgroup": "TNBC",
+          "n": 360,
+          "label": 1,
+          "correct": 326,
+          "rate": 0.9055555555555556,
+          "ci_low": 0.8709206039156303,
+          "ci_high": 0.9316267499413182,
+          "flagged": 326,
+          "flagged_rate": 0.9055555555555556,
+          "mean_risk": 0.9398955217421009
+        },
+        {
+          "subgroup": "норма рядом",
+          "n": 88,
+          "label": 0,
+          "correct": 86,
+          "rate": 0.9772727272727273,
+          "ci_low": 0.9208745464473241,
+          "ci_high": 0.9937450717361879,
+          "flagged": 2,
+          "flagged_rate": 0.022727272727272728,
+          "mean_risk": 0.046349378050722985
+        }
+      ]
+    },
+    {
+      "cohort": "VARLEY",
+      "title": "Varley — ER+ и TNBC, плюс редукционная маммопластика",
+      "n_samples": 140,
+      "threshold": 0.9882246562542519,
+      "metrics": {
+        "roc_auc": 0.9859693877551021,
+        "pr_auc": 0.9900560224089636,
+        "accuracy": 0.9214285714285714,
+        "balanced_accuracy": 0.9345238095238095,
+        "sensitivity": 0.8690476190476191,
+        "specificity": 1.0,
+        "precision": 1.0,
+        "f1": 0.9299363057324841,
+        "mcc": 0.852272350369282,
+        "threshold": 0.9882246562542519,
+        "tp": 73,
+        "tn": 56,
+        "fp": 0,
+        "fn": 11,
+        "roc_auc_ci": [
+          0.9640678146258503,
+          1.0
+        ],
+        "pr_auc_ci": [
+          0.9754785664265706,
+          1.0
+        ],
+        "sensitivity_ci": [
+          0.780539270768134,
+          0.9252777868305695
+        ],
+        "specificity_ci": [
+          0.9358060632812366,
+          1.0
+        ],
+        "n_pos": 84,
+        "n_neg": 56
+      },
+      "by_subgroup": [
+        {
+          "subgroup": "норма рядом (ER+)",
+          "n": 30,
+          "label": 0,
+          "correct": 30,
+          "rate": 1.0,
+          "ci_low": 0.8864866068260312,
+          "ci_high": 0.9999999999999999,
+          "flagged": 0,
+          "flagged_rate": 0.0,
+          "mean_risk": 0.056902776132641116
+        },
+        {
+          "subgroup": "опухоль ER+",
+          "n": 42,
+          "label": 1,
+          "correct": 34,
+          "rate": 0.8095238095238095,
+          "ci_low": 0.6669922598996131,
+          "ci_high": 0.9001799171835226,
+          "flagged": 34,
+          "flagged_rate": 0.8095238095238095,
+          "mean_risk": 0.9426967490634023
+        },
+        {
+          "subgroup": "редукционная маммопластика",
+          "n": 5,
+          "label": 0,
+          "correct": 5,
+          "rate": 1.0,
+          "ci_low": 0.5655175352168251,
+          "ci_high": 1.0,
+          "flagged": 0,
+          "flagged_rate": 0.0,
+          "mean_risk": 0.023416986428793658
+        },
+        {
+          "subgroup": "норма рядом (TNBC)",
+          "n": 21,
+          "label": 0,
+          "correct": 21,
+          "rate": 1.0,
+          "ci_low": 0.8453609810751531,
+          "ci_high": 1.0,
+          "flagged": 0,
+          "flagged_rate": 0.0,
+          "mean_risk": 0.05954202813424756
+        },
+        {
+          "subgroup": "опухоль TNBC",
+          "n": 42,
+          "label": 1,
+          "correct": 39,
+          "rate": 0.9285714285714286,
+          "ci_low": 0.8099057319884169,
+          "ci_high": 0.9754095901266941,
+          "flagged": 39,
+          "flagged_rate": 0.9285714285714286,
+          "mean_risk": 0.9697971248136603
+        }
+      ]
+    }
+  ],
+  "progression_spectrum": {
+    "cohort": "PROGRESSION",
+    "title": "Спектр прогрессии: норма → ранняя неоплазия → DCIS → инвазия",
+    "n_samples": 80,
+    "threshold": 0.9882246562542519,
+    "metrics": {
+      "roc_auc": 0.9974489795918366,
+      "pr_auc": 0.9952380952380953,
+      "accuracy": 0.9761904761904762,
+      "balanced_accuracy": 0.9642857142857143,
+      "sensitivity": 0.9285714285714286,
+      "specificity": 1.0,
+      "precision": 1.0,
+      "f1": 0.9629629629629629,
+      "mcc": 0.9468641529479986,
+      "threshold": 0.9882246562542519,
+      "tp": 13,
+      "tn": 28,
+      "fp": 0,
+      "fn": 1,
+      "roc_auc_ci": [
+        0.9846938775510204,
+        1.0
+      ],
+      "pr_auc_ci": [
+        0.9747899159663865,
+        1.0
+      ],
+      "sensitivity_ci": [
+        0.6853129557584889,
+        0.9872777847521093
+      ],
+      "specificity_ci": [
+        0.8793566952341543,
+        0.9999999999999998
+      ],
+      "n_pos": 14,
+      "n_neg": 28
+    },
+    "by_subgroup": [
+      {
+        "subgroup": "норма",
+        "n": 28,
+        "label": 0,
+        "correct": 28,
+        "rate": 1.0,
+        "ci_low": 0.8793566952341543,
+        "ci_high": 0.9999999999999998,
+        "flagged": 0,
+        "flagged_rate": 0.0,
+        "mean_risk": 0.08309157963279844
+      },
+      {
+        "subgroup": "ранняя неоплазия",
+        "n": 28,
+        "label": null,
+        "correct": null,
+        "rate": null,
+        "flagged": 0,
+        "flagged_rate": 0.0,
+        "mean_risk": 0.2191521639044848
+      },
+      {
+        "subgroup": "DCIS (рак на месте)",
+        "n": 10,
+        "label": null,
+        "correct": null,
+        "rate": null,
+        "flagged": 5,
+        "flagged_rate": 0.5,
+        "mean_risk": 0.8994798133830819
+      },
+      {
+        "subgroup": "инвазивная карцинома",
+        "n": 14,
+        "label": 1,
+        "correct": 13,
+        "rate": 0.9285714285714286,
+        "ci_low": 0.6853129557584889,
+        "ci_high": 0.9872777847521093,
+        "flagged": 13,
+        "flagged_rate": 0.9285714285714286,
+        "mean_risk": 0.9921289070726704
+      }
+    ]
   },
   "permutation_test": {
     "observed_auc": 0.9998060885328881,
@@ -455,7 +689,7 @@
         "test_sensitivity": 0.9865470852017937,
         "test_specificity": 1.0,
         "test_mcc": 0.9689225644590159,
-        "fit_seconds": 20.1
+        "fit_seconds": 17.8
       },
       {
         "model": "Logistic Regression (L1)",
@@ -465,7 +699,7 @@
         "test_sensitivity": 0.9820627802690582,
         "test_specificity": 1.0,
         "test_mcc": 0.9590149049264161,
-        "fit_seconds": 21.6
+        "fit_seconds": 17.7
       },
       {
         "model": "Elastic Net",
@@ -475,7 +709,7 @@
         "test_sensitivity": 0.9865470852017937,
         "test_specificity": 1.0,
         "test_mcc": 0.9689225644590159,
-        "fit_seconds": 18.3
+        "fit_seconds": 18.7
       },
       {
         "model": "LDA (Ledoit-Wolf)",
@@ -485,7 +719,7 @@
         "test_sensitivity": 0.9955156950672646,
         "test_specificity": 1.0,
         "test_mcc": 0.9894057644951051,
-        "fit_seconds": 27.1
+        "fit_seconds": 19.6
       },
       {
         "model": "PLS-DA",
@@ -495,7 +729,7 @@
         "test_sensitivity": 0.8968609865470852,
         "test_specificity": 1.0,
         "test_mcc": 0.8033071748401928,
-        "fit_seconds": 24.9
+        "fit_seconds": 18.5
       },
       {
         "model": "Shrunken Centroids (PAM)",
@@ -505,7 +739,7 @@
         "test_sensitivity": 0.9775784753363229,
         "test_specificity": 1.0,
         "test_mcc": 0.9493182590420731,
-        "fit_seconds": 16.5
+        "fit_seconds": 18.8
       },
       {
         "model": "SVM (RBF)",
@@ -515,7 +749,7 @@
         "test_sensitivity": 0.9865470852017937,
         "test_specificity": 1.0,
         "test_mcc": 0.9689225644590159,
-        "fit_seconds": 16.6
+        "fit_seconds": 18.1
       },
       {
         "model": "Random Forest",
@@ -525,7 +759,7 @@
         "test_sensitivity": 0.9955156950672646,
         "test_specificity": 0.9830508474576272,
         "test_mcc": 0.9785665425248917,
-        "fit_seconds": 28.4
+        "fit_seconds": 27.4
       },
       {
         "model": "Extra Trees",
@@ -535,7 +769,7 @@
         "test_sensitivity": 0.9865470852017937,
         "test_specificity": 1.0,
         "test_mcc": 0.9689225644590159,
-        "fit_seconds": 24.3
+        "fit_seconds": 23.0
       },
       {
         "model": "Gradient Boosting",
@@ -545,7 +779,7 @@
         "test_sensitivity": 0.9865470852017937,
         "test_specificity": 1.0,
         "test_mcc": 0.9689225644590159,
-        "fit_seconds": 62.7
+        "fit_seconds": 52.1
       },
       {
         "model": "Naive Bayes",
@@ -555,7 +789,7 @@
         "test_sensitivity": 0.9865470852017937,
         "test_specificity": 1.0,
         "test_mcc": 0.9689225644590159,
-        "fit_seconds": 18.3
+        "fit_seconds": 18.2
       },
       {
         "model": "k-NN (k=5)",
@@ -565,7 +799,7 @@
         "test_sensitivity": 0.9865470852017937,
         "test_specificity": 1.0,
         "test_mcc": 0.9689225644590159,
-        "fit_seconds": 16.6
+        "fit_seconds": 14.7
       },
       {
         "model": "Ensemble (soft vote)",
@@ -575,7 +809,7 @@
         "test_sensitivity": 0.9865470852017937,
         "test_specificity": 1.0,
         "test_mcc": 0.9689225644590159,
-        "fit_seconds": 35.3
+        "fit_seconds": 24.4
       },
       {
         "model": "Stacking (LR meta)",
@@ -585,7 +819,7 @@
         "test_sensitivity": 0.9910313901345291,
         "test_specificity": 1.0,
         "test_mcc": 0.97904982389616,
-        "fit_seconds": 73.4
+        "fit_seconds": 62.5
       }
     ]
   }

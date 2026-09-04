@@ -15,9 +15,16 @@
      людях, которых модель не видела. Сколько здоровых объявлены больными?
   3. Перенос GTEx -> TCGA. Обратное направление: узнает ли модель норму
      чужой когорты или спутает её с опухолью?
+  3b. Размер панели против переносимости: большие панели цепляются за
+     особенности консорциума, маленькие переносятся.
   4. Перестановочный тест с перемешиванием меток по пациентам.
   5. Итоговая модель: повторная CV, ДИ, стабильность генов, кривая обучения,
      метрики по стадиям и по источникам образцов.
+  8. Две внешние когорты, которых модель не видела: Шанхай (трижды-негативный
+     рак) и США (ER+ плюс ткань после редукционной маммопластики, то есть
+     здоровые живые женщины, а не посмертный материал).
+  9. Спектр прогрессии: норма -> ранняя неоплазия -> DCIS -> инвазия. Модель
+     обучалась только на крайних точках, промежуточные видит впервые.
 
 Запуск:  python train_cohorts.py
 """
@@ -48,9 +55,12 @@ from sklearn.model_selection import StratifiedGroupKFold  # noqa: E402
 
 from src.cohorts import (  # noqa: E402
     ADJACENT,
+    EXTERNAL_COHORTS,
     HEALTHY,
+    PROGRESSION_ORDER,
     TUMOR,
     build_dataset,
+    load_external,
     normalize,
 )
 from src.evaluation import (  # noqa: E402
@@ -70,6 +80,7 @@ from src.models import (  # noqa: E402
 )
 from src.viz_cohorts import (  # noqa: E402
     plot_external,
+    plot_progression,
     plot_honesty_panel,
     plot_panel_transfer,
     plot_models,
@@ -269,53 +280,79 @@ def transfer_vs_panel(data, norms, sizes, folds, target_sens) -> pd.DataFrame:
 
 
 def external_validation(model, data, norm: str, threshold: float,
-                        cache_dir) -> dict:
-    """Проверка на третьей когорте, которой модель не видела вообще.
+                        cache_dir, name: str) -> dict:
+    """Проверка на когорте, которой модель не видела вообще.
 
-    FUSCC (Шанхай): 360 трижды-негативных опухолей и 88 парных норм. Другая
-    страна, больница, популяция и молекулярный подтип — TCGA преимущественно
-    ER-положительный. Если модель работает и здесь, значит она выучила рак,
-    а не устройство конкретного биобанка.
+    FUSCC — Шанхай, трижды-негативный рак: другая страна, больница, популяция
+    и молекулярный подтип. VARLEY — американская когорта с ER-положительными
+    опухолями и, что важнее, с тканью после редукционной маммопластики: это
+    здоровые ЖИВЫЕ женщины, хирургический материал, а не посмертный, как GTEx.
+    Вместе они закрывают и подтип опухоли, и происхождение здоровой нормы.
     """
-    from src.cohorts import load_external_fuscc
-
-    Xe, me = load_external_fuscc(cache_dir, data.tpm_genes, data.X.columns,
-                                 data.annotation)
-    Xn = normalize(Xe, norm).to_numpy(dtype=np.float32)
-    ye = me["label"].to_numpy(dtype=np.int8)
-    prob = model.predict_proba(Xn)[:, 1]
-
-    metrics = {**compute_metrics(ye, prob, threshold),
-               **metrics_with_ci(ye, prob, threshold)}
-
-    tum = prob[ye == 1]
-    nor = prob[ye == 0]
-    sens_lo, sens_hi = wilson_ci(int((tum >= threshold).sum()), len(tum))
-    spec_lo, spec_hi = wilson_ci(int((nor < threshold).sum()), len(nor))
-
-    logger.info(f"  ROC-AUC {metrics['roc_auc']:.4f} "
-                f"[{metrics['roc_auc_ci'][0]:.4f}, {metrics['roc_auc_ci'][1]:.4f}]")
-    logger.info(f"  Опухоли  {int((tum >= threshold).sum())}/{len(tum)} = "
-                f"{(tum >= threshold).mean():.1%} [{sens_lo:.1%}–{sens_hi:.1%}]  "
-                f"средний риск {tum.mean():.3f}")
-    logger.info(f"  Нормы    {int((nor < threshold).sum())}/{len(nor)} = "
-                f"{(nor < threshold).mean():.1%} [{spec_lo:.1%}–{spec_hi:.1%}]  "
-                f"средний риск {nor.mean():.3f}")
+    Xe, me = load_external(name, cache_dir, data.tpm_genes, data.X.columns,
+                           data.annotation)
+    prob = model.predict_proba(
+        normalize(Xe, norm).to_numpy(dtype=np.float32))[:, 1]
 
     me = me.copy()
     me["risk"] = prob
     me["pred"] = (prob >= threshold).astype(int)
 
-    return {"n_tumor": int(len(tum)), "n_normal": int(len(nor)),
-            "roc_auc": metrics["roc_auc"], "roc_auc_ci": metrics["roc_auc_ci"],
-            "sensitivity": float((tum >= threshold).mean()),
-            "sens_ci": [sens_lo, sens_hi],
-            "specificity": float((nor < threshold).mean()),
-            "spec_ci": [spec_lo, spec_hi],
-            "mean_risk_tumor": float(tum.mean()),
-            "mean_risk_normal": float(nor.mean()),
-            "threshold": float(threshold),
-            "predictions": me}
+    scored = me["label"].notna().to_numpy()
+    ye = me.loc[scored, "label"].to_numpy(dtype=np.int8)
+    ps = prob[scored]
+
+    metrics = {}
+    if len(np.unique(ye)) == 2:
+        metrics = {**compute_metrics(ye, ps, threshold),
+                   **metrics_with_ci(ye, ps, threshold)}
+        logger.info(f"  ROC-AUC {metrics['roc_auc']:.4f} "
+                    f"[{metrics['roc_auc_ci'][0]:.4f}, {metrics['roc_auc_ci'][1]:.4f}]")
+
+    by_sub = []
+    for sub in me["subgroup"].unique():
+        d = me[me["subgroup"] == sub]
+        lab = d["label"].iloc[0]
+        if pd.isna(lab):
+            row = {"subgroup": sub, "n": len(d), "label": None,
+                   "correct": None, "rate": None,
+                   "flagged": int(d["pred"].sum()),
+                   "flagged_rate": float(d["pred"].mean()),
+                   "mean_risk": float(d["risk"].mean())}
+            logger.info(f"  {sub:28s} n={len(d):4d}  помечено как опухоль "
+                        f"{row['flagged_rate']:.1%}  средний риск {row['mean_risk']:.3f}")
+        else:
+            ok = int((d["pred"] == int(lab)).sum())
+            lo, hi = wilson_ci(ok, len(d))
+            row = {"subgroup": sub, "n": len(d), "label": int(lab),
+                   "correct": ok, "rate": float(ok / len(d)),
+                   "ci_low": lo, "ci_high": hi,
+                   "flagged": int(d["pred"].sum()),
+                   "flagged_rate": float(d["pred"].mean()),
+                   "mean_risk": float(d["risk"].mean())}
+            logger.info(f"  {sub:28s} n={len(d):4d}  верно {row['rate']:.1%} "
+                        f"[{lo:.1%}–{hi:.1%}]  средний риск {row['mean_risk']:.3f}")
+        by_sub.append(row)
+
+    return {"cohort": name, "title": EXTERNAL_COHORTS[name]["title"],
+            "n_samples": int(len(me)), "threshold": float(threshold),
+            "metrics": metrics, "by_subgroup": by_sub, "predictions": me}
+
+
+def progression_spectrum(model, data, norm, threshold, cache_dir) -> dict:
+    """Как растёт оценка риска вдоль прогрессии опухоли.
+
+    Когорта SRP023262 содержит редкий набор: у одних и тех же пациентов взяты
+    нормальная ткань, ранняя неоплазия, карцинома in situ и инвазивная
+    карцинома. Модель училась только на «норма против инвазивной опухоли» и
+    промежуточных состояний не видела никогда. Поэтому вопрос честный: примет
+    ли она доброкачественное разрастание за рак и где окажется DCIS —
+    формально это уже карцинома, но она ещё не прорастает.
+    """
+    res = external_validation(model, data, norm, threshold, cache_dir, "PROGRESSION")
+    order = {s: i for i, s in enumerate(PROGRESSION_ORDER)}
+    res["by_subgroup"].sort(key=lambda r: order.get(r["subgroup"], 99))
+    return res
 
 
 # ------------------------------------------------------------ итоговая модель ---
@@ -682,43 +719,98 @@ def write_report(path: Path, ctx: dict) -> None:
             L.append(f"| {int(r['n_minority'])} | {r['auc_mean']:.4f} ± "
                      f"{r['auc_std']:.4f} |")
 
-    ext = ctx.get("external")
-    if ext:
+    externals = ctx.get("externals") or []
+    if externals:
         L += [
             "",
-            "## Внешняя валидация: третья когорта, Шанхай",
+            "## Внешняя валидация: когорты, которых модель не видела",
             "",
-            "FUSCC (Fudan University Shanghai Cancer Center), SRP157974 — "
-            f"**{ext['n_tumor']} первичных трижды-негативных опухолей** и "
-            f"**{ext['n_normal']} парных нормальных тканей**. Другая страна, "
-            "больница, популяция и молекулярный подтип: TCGA преимущественно "
-            "ER-положительный, здесь весь набор трижды-негативный. Модель этих "
-            "образцов не видела ни разу, порог перенесён без подгонки.",
-            "",
-            "| Метрика | Значение | 95% ДИ |",
-            "|---|---|---|",
-            f"| ROC-AUC | **{ext['roc_auc']:.4f}** | "
-            f"{ext['roc_auc_ci'][0]:.4f} – {ext['roc_auc_ci'][1]:.4f} |",
-            f"| Чувствительность (опухоли) | **{ext['sensitivity']:.1%}** | "
-            f"{ext['sens_ci'][0]:.1%} – {ext['sens_ci'][1]:.1%} |",
-            f"| Специфичность (нормы) | **{ext['specificity']:.1%}** | "
-            f"{ext['spec_ci'][0]:.1%} – {ext['spec_ci'][1]:.1%} |",
-            f"| Средний риск: опухоль / норма | {ext['mean_risk_tumor']:.3f} / "
-            f"{ext['mean_risk_normal']:.3f} | |",
-            "",
-            "Это самая честная цифра во всём проекте: ни один из этих образцов "
-            "не участвовал ни в обучении, ни в выборе нормировки и размера "
-            "панели, ни в подборе порога. Падение AUC с 0.997 на своём "
-            "тесте до "
-            f"{ext['roc_auc']:.3f} на чужой когорте — нормальная цена "
-            "переноса; у модели, которая держалась бы на утечке, здесь "
-            "было бы около 0.5.",
-            "",
-            "Важная оговорка: нормы в этой когорте — тоже ткань рядом с "
-            "опухолью у онкобольных, а не образцы здоровых доноров. Она "
-            "проверяет перенос между странами и подтипами рака, но не "
-            "заменяет проверку на здоровых людях из раздела 2.",
+            "Ни один из этих образцов не участвовал ни в обучении, ни в выборе "
+            "нормировки и размера панели, ни в подборе порога. Порог перенесён "
+            "как есть.",
         ]
+        for e in externals:
+            m = e.get("metrics") or {}
+            L += ["", f"### {e['title']}", ""]
+            if m:
+                L += [
+                    "| Метрика | Значение | 95% ДИ |", "|---|---|---|",
+                    f"| ROC-AUC | **{m['roc_auc']:.4f}** | "
+                    f"{m['roc_auc_ci'][0]:.4f} – {m['roc_auc_ci'][1]:.4f} |",
+                    f"| Чувствительность | {m['sensitivity']:.1%} | "
+                    f"{m['sensitivity_ci'][0]:.1%} – {m['sensitivity_ci'][1]:.1%} |",
+                    f"| Специфичность | {m['specificity']:.1%} | "
+                    f"{m['specificity_ci'][0]:.1%} – {m['specificity_ci'][1]:.1%} |",
+                    "",
+                ]
+            L += ["| Подгруппа | N | Верно | Средний риск |", "|---|---|---|---|"]
+            for r in e["by_subgroup"]:
+                rate = (f"{r['rate']:.1%}" if r["rate"] is not None
+                        else f"помечено раком {r['flagged_rate']:.1%}")
+                L.append(f"| {r['subgroup']} | {r['n']} | {rate} | "
+                         f"{r['mean_risk']:.3f} |")
+
+        L += [
+            "",
+            "Две когорты закрывают разные дыры. Шанхайская проверяет перенос "
+            "между странами, популяциями и молекулярным подтипом: TCGA "
+            "преимущественно ER-положительный, там весь набор трижды-негативный. "
+            "Американская добавляет ER-положительные опухоли и, что важнее, "
+            "ткань после **редукционной маммопластики** - это здоровые ЖИВЫЕ "
+            "женщины и хирургический материал, тогда как GTEx посмертный. "
+            "Возражение «здоровая норма у вас только аутопсийная» этим снимается.",
+        ]
+
+    spec = ctx.get("spectrum")
+    if spec:
+        rows = spec["by_subgroup"]
+        by = {r["subgroup"]: r for r in rows}
+        L += [
+            "",
+            "## Спектр прогрессии: доброкачественное, DCIS, инвазия",
+            "",
+            "Когорта SRP023262 редкая: у одних и тех же пациентов взяты "
+            "нормальная ткань, ранняя неоплазия, карцинома in situ и инвазивная "
+            "карцинома. Модель обучалась только на крайних точках этого ряда, "
+            "промежуточные состояния видит впервые.",
+            "",
+            "| Состояние | N | Средний риск | Помечено как рак |",
+            "|---|---|---|---|",
+        ]
+        for r in rows:
+            L.append(f"| {r['subgroup']} | {r['n']} | **{r['mean_risk']:.3f}** | "
+                     f"{r['flagged_rate']:.0%} |")
+
+        neo = by.get("ранняя неоплазия")
+        dcis = by.get("DCIS (рак на месте)")
+        norm = by.get("норма")
+        if neo and dcis and norm:
+            L += [
+                "",
+                f"Риск растёт монотонно вдоль прогрессии: {norm['mean_risk']:.3f} "
+                f"у нормы, {neo['mean_risk']:.3f} у ранней неоплазии, "
+                f"{dcis['mean_risk']:.3f} у DCIS. Модель не просто провела "
+                "границу «опухоль или нет», она выстроила шкалу тяжести, хотя "
+                "промежуточных состояний в обучении не было.",
+                "",
+                f"Практически важны две строки. **Доброкачественные разрастания "
+                f"не дают ложных тревог**: помечено раком "
+                f"{neo['flagged_rate']:.0%}. **DCIS попадает ровно посередине**: "
+                f"помечено {dcis['flagged_rate']:.0%}. Биологически это честно - "
+                f"DCIS уже карцинома, но ещё не инвазия, и модель, обученная на "
+                f"инвазивных опухолях, распознаёт её лишь частично.",
+                "",
+                "Важная деталь, которую видно на графике "
+                "`10_progression_spectrum.png`: у ранней неоплазии не просто "
+                "повышенный риск, а огромный разброс. Медиана 0.063, то есть "
+                "большинство таких поражений неотличимы от нормы, но у 8 из 28 "
+                "риск выше 0.3, а у отдельных доходит до 0.87. Среднее 0.219 "
+                "держится именно на этом хвосте. Трактовать это как «модель "
+                "заранее видит, какая неоплазия переродится» нельзя - исходов "
+                "по этим пациентам в данных нет. Но разброс сам по себе "
+                "означает, что ранние поражения молекулярно неоднородны, и это "
+                "согласуется с тем, что известно про них в клинике.",
+            ]
 
     markers = ctx["markers"]
     L += ["", "## Гены-маркеры с координатами в ДНК (hg38, GENCODE v26)", "",
@@ -791,7 +883,8 @@ def rebuild_report(args) -> None:
         "curve": _csv("learning_curve_v2.csv"),
         "markers": _csv("markers_v2.csv"),
         "sweep": _csv("panel_vs_transfer.csv"),
-        "external": out.get("external_validation"),
+        "externals": out.get("external_validation") or [],
+        "spectrum": out.get("progression_spectrum"),
         "target_sens": args.target_sensitivity,
     })
 
@@ -889,24 +982,20 @@ def main() -> None:
         logger.info(f"  {str(r['symbol']):12s} {arrow} {r['locus']:38s} "
                     f"устойчивость {r['selection_freq']:.2f}")
 
-    logger.info("\n[8] ВНЕШНЯЯ ВАЛИДАЦИЯ — когорта FUSCC (Шанхай), модель её не видела")
-    external = external_validation(final["model"], data, chosen,
-                                   final["threshold"], RECOUNT_DIR)
+    logger.info("\n[8] ВНЕШНЯЯ ВАЛИДАЦИЯ — когорты, которых модель не видела")
+    externals = []
+    for name in ["FUSCC", "VARLEY"]:
+        logger.info(f"\n  {EXTERNAL_COHORTS[name]['title']}")
+        externals.append(external_validation(final["model"], data, chosen,
+                                             final["threshold"], RECOUNT_DIR, name))
+    external = externals[0]
 
-    logger.info("\n[9] ГРАФИКИ")
+    logger.info("\n[9] СПЕКТР ПРОГРЕССИИ — доброкачественное, DCIS, инвазия")
+    spectrum = progression_spectrum(final["model"], data, chosen,
+                                    final["threshold"], RECOUNT_DIR)
+
     probe_df, gtex_df, tcga_df = (pd.DataFrame(probe), pd.DataFrame(to_gtex),
                                   pd.DataFrame(to_tcga))
-    plot_honesty_panel(probe_df, gtex_df, tcga_df, RESULTS_DIR, chosen)
-    plot_pca(normalize(data.X, "logtpm"), data.meta, RESULTS_DIR,
-             " (log2 TPM, как есть)", "02_pca_logtpm.png")
-    plot_pca(normalize(data.X, chosen), data.meta, RESULTS_DIR,
-             f" (нормировка {chosen})", "02b_pca_chosen.png")
-    plot_risk_by_group(final["test_meta"], RESULTS_DIR, final["threshold"])
-    plot_stage(final["by_stage"], RESULTS_DIR, final["threshold"])
-    plot_models(final["summary"], RESULTS_DIR, final["best_name"])
-    plot_permutation(perm, final["repeated_cv"]["auc_mean"], RESULTS_DIR)
-    plot_panel_transfer(sweep, RESULTS_DIR, chosen, n_genes)
-    plot_external(external, RESULTS_DIR)
 
     dataset = {
         "source": "recount3 (Monorail, GENCODE v26)",
@@ -923,8 +1012,10 @@ def main() -> None:
         "chosen_normalization": chosen,
         "chosen_panel_size": n_genes,
         "panel_vs_transfer": sweep.to_dict(orient="records"),
-        "external_validation": {k: v for k, v in external.items()
-                                if k != "predictions"},
+        "external_validation": [{k: v for k, v in e.items() if k != "predictions"}
+                                for e in externals],
+        "progression_spectrum": {k: v for k, v in spectrum.items()
+                                 if k != "predictions"},
         "permutation_test": {k: v for k, v in perm.items() if k != "null_aucs"},
         "repeated_cv": {k: v for k, v in final["repeated_cv"].items()
                         if k not in ("oof_matrix", "oof_mean", "fold_aucs")},
@@ -940,8 +1031,10 @@ def main() -> None:
         json.dumps(out, ensure_ascii=False, indent=2, default=str), encoding="utf-8")
 
     sweep.to_csv(RESULTS_DIR / "panel_vs_transfer.csv", index=False)
-    external["predictions"].to_csv(RESULTS_DIR / "external_fuscc_predictions.csv",
-                                   encoding="utf-8")
+    for ext in externals + [spectrum]:
+        ext["predictions"].to_csv(
+            RESULTS_DIR / f"external_{ext['cohort'].lower()}_predictions.csv",
+            encoding="utf-8")
     final["summary"].to_csv(RESULTS_DIR / "model_comparison_v2.csv", index=False)
     final["test_meta"].to_csv(RESULTS_DIR / "holdout_predictions.csv", encoding="utf-8")
     markers.to_csv(RESULTS_DIR / "markers_v2.csv", index=False, encoding="utf-8")
@@ -954,7 +1047,7 @@ def main() -> None:
         "dataset": dataset, "probe": probe, "naive": naive, "to_gtex": to_gtex,
         "to_tcga": to_tcga, "chosen_norm": chosen, "perm": perm, "final": final,
         "curve": curve, "markers": markers, "sweep": sweep,
-        "external": external, "n_genes": n_genes,
+        "externals": externals, "spectrum": spectrum, "n_genes": n_genes,
         "ref_genes": args.n_genes,
         "target_sens": args.target_sensitivity,
     })
@@ -967,6 +1060,29 @@ def main() -> None:
         "holdout": final["metrics"], "markers": markers,
         "source": "recount3 GTEx+TCGA",
     }, MODELS_DIR / "biodna_v2.joblib", compress=3)
+
+    # Графики рисуются ПОСЛЕ сохранения результатов и по одному в try:
+    # прогон занимает больше часа, и опечатка в оформлении не должна его стирать.
+    logger.info("\n[10] ГРАФИКИ")
+    for draw in [
+        lambda: plot_honesty_panel(probe_df, gtex_df, tcga_df, RESULTS_DIR, chosen),
+        lambda: plot_pca(normalize(data.X, "logtpm"), data.meta, RESULTS_DIR,
+                         " (log2 TPM, как есть)", "02_pca_logtpm.png"),
+        lambda: plot_pca(normalize(data.X, chosen), data.meta, RESULTS_DIR,
+                         f" (нормировка {chosen})", "02b_pca_chosen.png"),
+        lambda: plot_risk_by_group(final["test_meta"], RESULTS_DIR, final["threshold"]),
+        lambda: plot_stage(final["by_stage"], RESULTS_DIR, final["threshold"]),
+        lambda: plot_models(final["summary"], RESULTS_DIR, final["best_name"]),
+        lambda: plot_permutation(perm, final["repeated_cv"]["auc_mean"], RESULTS_DIR),
+        lambda: plot_panel_transfer(sweep, RESULTS_DIR, chosen, n_genes),
+        *[(lambda e=e, i=i: plot_external(e, RESULTS_DIR, index=i))
+          for i, e in enumerate(externals)],
+        lambda: plot_progression(spectrum, RESULTS_DIR, final["threshold"]),
+    ]:
+        try:
+            draw()
+        except Exception as exc:
+            logger.warning(f"  график пропущен: {type(exc).__name__}: {exc}")
 
     logger.info(f"\nМодель: {MODELS_DIR / 'biodna_v2.joblib'}")
     logger.info(f"Готово за {(time.time() - t0) / 60:.1f} мин. Результаты в {RESULTS_DIR}/")

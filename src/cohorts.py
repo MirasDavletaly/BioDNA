@@ -63,6 +63,8 @@ FUSCC_META_URL = (f"{RECOUNT3}/sra/metadata/74/{FUSCC_PROJECT}/"
 HEALTHY = "healthy"      # GTEx, донор без рака
 ADJACENT = "adjacent"    # TCGA, ткань рядом с опухолью у онкобольного
 TUMOR = "tumor"          # TCGA, первичная опухоль
+LESION = "lesion"        # доброкачественное/предраковое поражение
+INSITU = "insitu"        # карцинома in situ, ещё не инвазия
 
 STAGE_RE = re.compile(r"stage\s+(IV|III|II|I|X)", re.IGNORECASE)
 
@@ -187,69 +189,130 @@ def to_log_tpm(counts: pd.DataFrame, bp_length: pd.Series) -> pd.DataFrame:
                         index=counts.index, columns=counts.columns)
 
 
-def load_external_fuscc(cache_dir: str | Path, tpm_genes, model_genes,
-                        annotation: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Третья, полностью независимая когорта: FUSCC TNBC (Шанхай), SRP157974.
+# Внешние когорты: в обучении не участвуют никогда, только проверка.
+# Каждая описывается полем метаданных SRA и разбором его значений в
+# (группа, метка, подпись). Метка None означает «промежуточное состояние»:
+# для таких групп считается не точность, а распределение риска.
+EXTERNAL_COHORTS = {
+    "FUSCC": {
+        "project": "SRP157974",
+        "title": "FUSCC, Шанхай — трижды-негативный рак",
+        "field": "tissue",
+        "patient_field": "isolate",
+        "labels": {
+            "Primary breast tumor tissue": (TUMOR, 1, "TNBC"),
+            "Paired normal breast tissue": (ADJACENT, 0, "норма рядом"),
+        },
+    },
+    "VARLEY": {
+        "project": "SRP042620",
+        "title": "Varley — ER+ и TNBC, плюс редукционная маммопластика",
+        "field": "tissue",
+        "patient_field": None,
+        "labels": {
+            "ER+ Breast Cancer Primary Tumor": (TUMOR, 1, "опухоль ER+"),
+            "Triple Negative Breast Cancer Primary Tumor": (TUMOR, 1, "опухоль TNBC"),
+            "Uninvolved Breast Tissue Adjacent to ER+ Primary Tumor":
+                (ADJACENT, 0, "норма рядом (ER+)"),
+            "Uninvolved Breast Tissue Adjacent to TNBC Primary Tumor":
+                (ADJACENT, 0, "норма рядом (TNBC)"),
+            "Reduction Mammoplasty - No known cancer":
+                (HEALTHY, 0, "редукционная маммопластика"),
+            # Клеточные линии не ткань, в проверку не берём.
+        },
+    },
+    "PROGRESSION": {
+        "project": "SRP023262",
+        "title": "Спектр прогрессии: норма → ранняя неоплазия → DCIS → инвазия",
+        "field": "source_name",
+        "patient_field": "patient number",
+        "labels": {
+            "normal breast": (HEALTHY, 0, "норма"),
+            "early neoplasia": (LESION, None, "ранняя неоплазия"),
+            "ductal carcinoma in situ": (INSITU, None, "DCIS (рак на месте)"),
+            "invasive ductal carcinoma": (TUMOR, 1, "инвазивная карцинома"),
+        },
+    },
+}
 
-    360 первичных трижды-негативных опухолей и 88 парных нормальных тканей.
-    Другая страна, другая больница, другая лаборатория и другой молекулярный
-    подтип (TCGA в основном ER+). Обработана тем же пайплайном recount3, поэтому
-    сравнима напрямую. Модель этих образцов не видит при обучении вообще —
-    это внешняя проверка в чистом виде.
+# Порядок групп на графике прогрессии — от нормы к инвазии.
+PROGRESSION_ORDER = ["норма", "ранняя неоплазия", "DCIS (рак на месте)",
+                     "инвазивная карцинома"]
+
+
+def _sra_attr(s, key: str):
+    """Разбирает поле sample_attributes вида 'ключ;;значение|ключ;;значение'."""
+    if not isinstance(s, str):
+        return None
+    for part in s.split("|"):
+        if part.lower().startswith(key.lower() + ";;"):
+            return part.split(";;", 1)[1]
+    return None
+
+
+def load_external(name: str, cache_dir: str | Path, tpm_genes, model_genes,
+                  annotation: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Загружает внешнюю когорту из recount3 и приводит её к шкале обучения.
+
+    Ключевая тонкость: TPM считается по ТОМУ ЖЕ набору генов, что и для
+    обучающих когорт. Знаменатель нормировки обязан совпадать, иначе шкалы
+    разъедутся и предсказание потеряет смысл.
     """
+    spec = EXTERNAL_COHORTS[name]
+    project = spec["project"]
     cache_dir = Path(cache_dir)
-    counts_path = cache_dir / f"sra.gene_sums.{FUSCC_PROJECT}.G026.gz"
-    meta_path = cache_dir / f"sra.sra.{FUSCC_PROJECT}.MD.gz"
 
-    for url, dest in [(FUSCC_COUNTS_URL, counts_path), (FUSCC_META_URL, meta_path)]:
+    counts_path = cache_dir / f"sra.gene_sums.{project}.G026.gz"
+    meta_path = cache_dir / f"sra.sra.{project}.MD.gz"
+    suffix = project[-2:]
+    for url, dest in [
+        (f"{RECOUNT3}/sra/gene_sums/{suffix}/{project}/sra.gene_sums.{project}.G026.gz",
+         counts_path),
+        (f"{RECOUNT3}/sra/metadata/{suffix}/{project}/sra.sra.{project}.MD.gz",
+         meta_path),
+    ]:
         if not _download(url, dest):
             raise SystemExit(f"Не скачался внешний набор {dest.name}")
 
-    meta_raw = _read_meta(meta_path)
+    raw = _read_meta(meta_path)
+    values = raw["sample_attributes"].map(lambda s: _sra_attr(s, spec["field"]))
+    keep = values.isin(spec["labels"].keys()).to_numpy()
+    if not keep.any():
+        raise SystemExit(f"{name}: ни одно значение поля {spec['field']} не опознано")
 
-    def attr(s: str, key: str):
-        if not isinstance(s, str):
-            return None
-        for part in s.split("|"):
-            if part.startswith(key + ";;"):
-                return part.split(";;", 1)[1]
-        return None
-
-    tissue = meta_raw["sample_attributes"].map(lambda s: attr(s, "tissue"))
-    is_tumor = tissue.eq("Primary breast tumor tissue").to_numpy()
-    keep = tissue.isin(["Primary breast tumor tissue",
-                        "Paired normal breast tissue"]).to_numpy()
+    decoded = [spec["labels"][v] for v in values[keep]]
+    if spec["patient_field"]:
+        patient = raw.loc[keep, "sample_attributes"].map(
+            lambda s: _sra_attr(s, spec["patient_field"])).to_numpy()
+    else:
+        patient = raw.loc[keep, "external_id"].to_numpy()
 
     meta = pd.DataFrame({
-        "sample": meta_raw.loc[keep, "external_id"].to_numpy(),
-        "cohort": "FUSCC",
-        "group": np.where(is_tumor[keep], TUMOR, ADJACENT),
-        "label": is_tumor[keep].astype(int),
-        "patient": meta_raw.loc[keep, "sample_attributes"].map(
-            lambda s: attr(s, "isolate")).to_numpy(),
-        "sex": meta_raw.loc[keep, "sample_attributes"].map(
-            lambda s: attr(s, "sex")).to_numpy(),
-        "age": meta_raw.loc[keep, "sample_attributes"].map(
-            lambda s: attr(s, "age")).to_numpy(),
-        "stage": "TNBC",
-        "batch": "FUSCC",
-        "rin": np.nan,
+        "sample": raw.loc[keep, "external_id"].to_numpy(),
+        "cohort": name,
+        "group": [d[0] for d in decoded],
+        "label": [d[1] for d in decoded],
+        "subgroup": [d[2] for d in decoded],
+        "patient": patient,
     }).set_index("sample")
 
     counts = _read_counts(counts_path)
     counts = counts.loc[counts.index.intersection(meta.index)]
 
-    # TPM считаем по ТОМУ ЖЕ набору генов, что и для TCGA/GTEx: знаменатель
-    # нормировки должен совпадать, иначе шкалы окажутся несопоставимы.
     tpm_genes = list(tpm_genes)
     counts = counts.reindex(columns=tpm_genes, fill_value=0.0)
-    X = to_log_tpm(counts, annotation.loc[tpm_genes, "bp_length"])
-    X = X[list(model_genes)]
+    X = to_log_tpm(counts, annotation.loc[tpm_genes, "bp_length"])[list(model_genes)]
 
     meta = meta.loc[X.index]
-    logger.info(f"Внешняя когорта FUSCC: {int((meta['label'] == 1).sum())} опухолей, "
-                f"{int((meta['label'] == 0).sum())} норм, {meta['patient'].nunique()} пациентов")
+    counts_by = meta["subgroup"].value_counts().to_dict()
+    logger.info(f"Внешняя когорта {name} ({project}): {len(meta)} образцов, "
+                f"{meta['patient'].nunique()} пациентов, состав {counts_by}")
     return X, meta
+
+
+def load_external_fuscc(cache_dir, tpm_genes, model_genes, annotation):
+    """Обратная совместимость: FUSCC через общий загрузчик."""
+    return load_external("FUSCC", cache_dir, tpm_genes, model_genes, annotation)
 
 
 def normalize(X: pd.DataFrame, method: str = "logtpm") -> pd.DataFrame:
