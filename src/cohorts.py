@@ -470,3 +470,48 @@ if __name__ == "__main__":
     print(data.X.shape)
     print(data.meta.groupby(["cohort", "group"]).size())
     print(data.meta[data.meta["group"] == TUMOR]["stage"].value_counts())
+
+
+def build_pooled_dataset(cache_dir: str | Path,
+                         external: tuple[str, ...] = ("FUSCC", "VARLEY"),
+                         **kwargs) -> CohortData:
+    """Все когорты в одной матрице, с колонкой cohort.
+
+    Нужна для протокола leave-one-cohort-out: обучаемся на всех источниках,
+    кроме одного, и проверяемся на отложенном. Это честная модель ситуации
+    «модель приехала в больницу, которой не было в обучении» - в отличие от
+    случайного сплита, где обучающая и тестовая часть приходят из одних и тех
+    же лабораторий.
+
+    Спектр прогрессии сюда НЕ включается: он остаётся нетронутой проверкой на
+    промежуточных состояниях, которых в обучении нет ни в каком виде.
+    """
+    base = build_dataset(cache_dir, **kwargs)
+
+    frames_x, frames_m = [base.X], [base.meta]
+    for name in external:
+        Xe, me = load_external(name, cache_dir, base.tpm_genes, base.X.columns,
+                               base.annotation)
+        # Приводим метаданные к общей схеме основного набора.
+        me = me.copy()
+        me["stage"] = me.get("subgroup")
+        me["sex"] = "female"
+        me["age"] = np.nan
+        me["batch"] = name
+        me["rin"] = np.nan
+        frames_x.append(Xe)
+        frames_m.append(me[base.meta.columns.intersection(me.columns).tolist()
+                           + ["subgroup"]])
+
+    X = pd.concat(frames_x, axis=0)
+    meta = pd.concat(frames_m, axis=0)
+    meta["label"] = meta["label"].astype("Int64")
+
+    # Пациенты в разных когортах нумеруются независимо - разводим префиксом,
+    # иначе группировка по пациентам склеит чужих людей с одинаковыми id.
+    meta["patient"] = meta["cohort"].astype(str) + ":" + meta["patient"].astype(str)
+
+    logger.info(f"Объединённый набор: {X.shape[0]} образцов x {X.shape[1]} генов")
+    logger.info(f"  по когортам: {meta.groupby(['cohort', 'group']).size().to_dict()}")
+    return CohortData(X=X, meta=meta, genes=base.genes,
+                      tpm_genes=base.tpm_genes, annotation=base.annotation)

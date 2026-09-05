@@ -1,0 +1,614 @@
+{
+  "protocol": "leave-one-cohort-out",
+  "test_cohorts": [
+    "TCGA",
+    "FUSCC",
+    "VARLEY"
+  ],
+  "composition": {
+    "FUSCC/adjacent": 88,
+    "FUSCC/tumor": 360,
+    "GTEX/healthy": 180,
+    "TCGA/adjacent": 111,
+    "TCGA/tumor": 1115,
+    "VARLEY/adjacent": 51,
+    "VARLEY/healthy": 5,
+    "VARLEY/tumor": 84
+  },
+  "n_samples": 1994,
+  "n_genes": 15808,
+  "sweep_top": [
+    {
+      "model": "Logistic Regression (L1)",
+      "normalization": "logtpm",
+      "n_genes": 50,
+      "worst_auc": 0.9888888888888889,
+      "mean_auc": 0.9931759743178704,
+      "auc_TCGA": 0.9978669252211853,
+      "auc_FUSCC": 0.9888888888888889,
+      "auc_VARLEY": 0.9927721088435374
+    },
+    {
+      "model": "Logistic Regression (L1)",
+      "normalization": "zsample",
+      "n_genes": 100,
+      "worst_auc": 0.9881313131313131,
+      "mean_auc": 0.9950467899178661,
+      "auc_TCGA": 0.9984971518603805,
+      "auc_FUSCC": 0.9881313131313131,
+      "auc_VARLEY": 0.9985119047619048
+    },
+    {
+      "model": "Logistic Regression (L1)",
+      "normalization": "zsample",
+      "n_genes": 50,
+      "worst_auc": 0.9877525252525253,
+      "mean_auc": 0.9929368692261069,
+      "auc_TCGA": 0.9970104633781764,
+      "auc_FUSCC": 0.9877525252525253,
+      "auc_VARLEY": 0.9940476190476191
+    },
+    {
+      "model": "PLS-DA",
+      "normalization": "zsample",
+      "n_genes": 50,
+      "worst_auc": 0.9875315656565656,
+      "mean_auc": 0.9913421487672768,
+      "auc_TCGA": 0.9977618874479861,
+      "auc_FUSCC": 0.9875315656565656,
+      "auc_VARLEY": 0.9887329931972789
+    },
+    {
+      "model": "PLS-DA",
+      "normalization": "logtpm",
+      "n_genes": 50,
+      "worst_auc": 0.987310606060606,
+      "mean_auc": 0.9935056067303024,
+      "auc_TCGA": 0.9978830848786006,
+      "auc_FUSCC": 0.987310606060606,
+      "auc_VARLEY": 0.9953231292517007
+    },
+    {
+      "model": "LDA (Ledoit-Wolf)",
+      "normalization": "logtpm",
+      "n_genes": 200,
+      "worst_auc": 0.9866477272727273,
+      "mean_auc": 0.9947640098364795,
+      "auc_TCGA": 0.998707227406779,
+      "auc_FUSCC": 0.9866477272727273,
+      "auc_VARLEY": 0.998937074829932
+    },
+    {
+      "model": "Logistic Regression (L1)",
+      "normalization": "zsample",
+      "n_genes": 25,
+      "worst_auc": 0.9866477272727272,
+      "mean_auc": 0.992633894569753,
+      "auc_TCGA": 0.9963559972528583,
+      "auc_FUSCC": 0.9866477272727272,
+      "auc_VARLEY": 0.9948979591836735
+    },
+    {
+      "model": "Elastic Net",
+      "normalization": "zsample",
+      "n_genes": 50,
+      "worst_auc": 0.9866161616161616,
+      "mean_auc": 0.9918055356516279,
+      "auc_TCGA": 0.9970912616652527,
+      "auc_FUSCC": 0.9866161616161616,
+      "auc_VARLEY": 0.9917091836734695
+    },
+    {
+      "model": "Logistic Regression (L1)",
+      "normalization": "logtpm",
+      "n_genes": 200,
+      "worst_auc": 0.986584595959596,
+      "mean_auc": 0.9946121996029907,
+      "auc_TCGA": 0.9993778531895123,
+      "auc_FUSCC": 0.986584595959596,
+      "auc_VARLEY": 0.997874149659864
+    },
+    {
+      "model": "Logistic Regression (L1)",
+      "normalization": "logtpm",
+      "n_genes": 100,
+      "worst_auc": 0.9865214646464646,
+      "mean_auc": 0.9945990518720339,
+      "auc_TCGA": 0.9987637862077323,
+      "auc_FUSCC": 0.9865214646464646,
+      "auc_VARLEY": 0.9985119047619048
+    },
+    {
+      "model": "PLS-DA",
+      "normalization": "zsample",
+      "n_genes": 100,
+      "worst_auc": 0.9864583333333333,
+      "mean_auc": 0.9927892862089691,
+      "auc_TCGA": 0.9982870763139821,
+      "auc_FUSCC": 0.9864583333333333,
+      "auc_VARLEY": 0.9936224489795918
+    },
+    {
+      "model": "LDA (Ledoit-Wolf)",
+      "normalization": "zsample",
+      "n_genes": 200,
+      "worst_auc": 0.9864583333333332,
+      "mean_auc": 0.994056063877092,
+      "auc_TCGA": 0.9991112188421605,
+      "auc_FUSCC": 0.9864583333333332,
+      "auc_VARLEY": 0.9965986394557823
+    },
+    {
+      "model": "LDA (Ledoit-Wolf)",
+      "normalization": "logtpm",
+      "n_genes": 100,
+      "worst_auc": 0.986016414141414,
+      "mean_auc": 0.9945195798194676,
+      "auc_TCGA": 0.9990304205550842,
+      "auc_FUSCC": 0.986016414141414,
+      "auc_VARLEY": 0.9985119047619048
+    },
+    {
+      "model": "Elastic Net",
+      "normalization": "logtpm",
+      "n_genes": 50,
+      "worst_auc": 0.9856376262626263,
+      "mean_auc": 0.9929649429509295,
+      "auc_TCGA": 0.997721488304448,
+      "auc_FUSCC": 0.9856376262626263,
+      "auc_VARLEY": 0.9955357142857142
+    },
+    {
+      "model": "Logistic Regression (L1)",
+      "normalization": "zsample",
+      "n_genes": 200,
+      "worst_auc": 0.9856060606060606,
+      "mean_auc": 0.9943164836862787,
+      "auc_TCGA": 0.9992566557588979,
+      "auc_FUSCC": 0.9856060606060606,
+      "auc_VARLEY": 0.9980867346938775
+    },
+    {
+      "model": "LDA (Ledoit-Wolf)",
+      "normalization": "rank",
+      "n_genes": 200,
+      "worst_auc": 0.9854482323232323,
+      "mean_auc": 0.9942568147144542,
+      "auc_TCGA": 0.9996606471942795,
+      "auc_FUSCC": 0.9854482323232323,
+      "auc_VARLEY": 0.9976615646258504
+    },
+    {
+      "model": "Logistic Regression (L2)",
+      "normalization": "logtpm",
+      "n_genes": 100,
+      "worst_auc": 0.9854008838383839,
+      "mean_auc": 0.9940684784184542,
+      "auc_TCGA": 0.9985052316890881,
+      "auc_FUSCC": 0.9854008838383839,
+      "auc_VARLEY": 0.9982993197278911
+    },
+    {
+      "model": "Logistic Regression (L2)",
+      "normalization": "logtpm",
+      "n_genes": 50,
+      "worst_auc": 0.9850694444444443,
+      "mean_auc": 0.99233756526958,
+      "auc_TCGA": 0.9968327071466085,
+      "auc_FUSCC": 0.9850694444444443,
+      "auc_VARLEY": 0.9951105442176871
+    },
+    {
+      "model": "Logistic Regression (L2)",
+      "normalization": "zsample",
+      "n_genes": 100,
+      "worst_auc": 0.984943181818182,
+      "mean_auc": 0.9931356974658545,
+      "auc_TCGA": 0.9959520058174767,
+      "auc_FUSCC": 0.984943181818182,
+      "auc_VARLEY": 0.9985119047619048
+    },
+    {
+      "model": "Logistic Regression (L2)",
+      "normalization": "rank",
+      "n_genes": 50,
+      "worst_auc": 0.9846906565656566,
+      "mean_auc": 0.992962726713127,
+      "auc_TCGA": 0.9990869793560376,
+      "auc_FUSCC": 0.9846906565656566,
+      "auc_VARLEY": 0.9951105442176871
+    }
+  ],
+  "finalists": [
+    {
+      "model": "Logistic Regression (L1)",
+      "normalization": "logtpm",
+      "n_genes": 50,
+      "worst_balanced_accuracy": 0.9583333333333333,
+      "mean_balanced_accuracy": 0.9706033285629697,
+      "worst_auc": 0.9888888888888889,
+      "mean_auc": 0.9931759743178704,
+      "per_cohort": {
+        "TCGA": {
+          "roc_auc": 0.9978669252211853,
+          "pr_auc": 0.9997895441675901,
+          "accuracy": 0.9787928221859706,
+          "balanced_accuracy": 0.9842847331636569,
+          "sensitivity": 0.9775784753363229,
+          "specificity": 0.990990990990991,
+          "precision": 0.999083409715857,
+          "f1": 0.9882139619220308,
+          "mcc": 0.8878721580151171,
+          "threshold": 0.29915825597479,
+          "tp": 1090,
+          "tn": 110,
+          "fp": 1,
+          "fn": 25
+        },
+        "FUSCC": {
+          "roc_auc": 0.9888888888888889,
+          "pr_auc": 0.996729724932081,
+          "accuracy": 0.9642857142857143,
+          "balanced_accuracy": 0.9691919191919192,
+          "sensitivity": 0.9611111111111111,
+          "specificity": 0.9772727272727273,
+          "precision": 0.9942528735632183,
+          "f1": 0.9774011299435028,
+          "mcc": 0.8953307156825775,
+          "threshold": 0.4381768023376816,
+          "tp": 346,
+          "tn": 86,
+          "fp": 2,
+          "fn": 14
+        },
+        "VARLEY": {
+          "roc_auc": 0.9927721088435374,
+          "pr_auc": 0.9949143157870852,
+          "accuracy": 0.9571428571428572,
+          "balanced_accuracy": 0.9583333333333333,
+          "sensitivity": 0.9523809523809523,
+          "specificity": 0.9642857142857143,
+          "precision": 0.975609756097561,
+          "f1": 0.963855421686747,
+          "mcc": 0.9116416797650452,
+          "threshold": 0.35400188058207627,
+          "tp": 80,
+          "tn": 54,
+          "fp": 2,
+          "fn": 4
+        }
+      }
+    },
+    {
+      "model": "Logistic Regression (L1)",
+      "normalization": "zsample",
+      "n_genes": 100,
+      "worst_balanced_accuracy": 0.9622474747474747,
+      "mean_balanced_accuracy": 0.9774550313227444,
+      "worst_auc": 0.9881313131313131,
+      "mean_auc": 0.9950467899178661,
+      "per_cohort": {
+        "TCGA": {
+          "roc_auc": 0.9984971518603805,
+          "pr_auc": 0.9998506174025238,
+          "accuracy": 0.9820554649265906,
+          "balanced_accuracy": 0.9820223811255201,
+          "sensitivity": 0.9820627802690582,
+          "specificity": 0.9819819819819819,
+          "precision": 0.9981768459434822,
+          "f1": 0.9900542495479204,
+          "mcc": 0.9015668893138824,
+          "threshold": 0.2619982629895163,
+          "tp": 1095,
+          "tn": 109,
+          "fp": 2,
+          "fn": 20
+        },
+        "FUSCC": {
+          "roc_auc": 0.9881313131313131,
+          "pr_auc": 0.9967354196655265,
+          "accuracy": 0.953125,
+          "balanced_accuracy": 0.9622474747474747,
+          "sensitivity": 0.9472222222222222,
+          "specificity": 0.9772727272727273,
+          "precision": 0.9941690962099126,
+          "f1": 0.9701280227596017,
+          "mcc": 0.8670725149031426,
+          "threshold": 0.4570740153507052,
+          "tp": 341,
+          "tn": 86,
+          "fp": 2,
+          "fn": 19
+        },
+        "VARLEY": {
+          "roc_auc": 0.9985119047619048,
+          "pr_auc": 0.9990435920668478,
+          "accuracy": 0.9857142857142858,
+          "balanced_accuracy": 0.9880952380952381,
+          "sensitivity": 0.9761904761904762,
+          "specificity": 1.0,
+          "precision": 1.0,
+          "f1": 0.9879518072289156,
+          "mcc": 0.9708391914381,
+          "threshold": 0.2984639298183983,
+          "tp": 82,
+          "tn": 56,
+          "fp": 0,
+          "fn": 2
+        }
+      }
+    },
+    {
+      "model": "Logistic Regression (L1)",
+      "normalization": "zsample",
+      "n_genes": 50,
+      "worst_balanced_accuracy": 0.9583333333333334,
+      "mean_balanced_accuracy": 0.9642168411787245,
+      "worst_auc": 0.9877525252525253,
+      "mean_auc": 0.9929368692261069,
+      "per_cohort": {
+        "TCGA": {
+          "roc_auc": 0.9970104633781764,
+          "pr_auc": 0.9997042987277877,
+          "accuracy": 0.9690048939641109,
+          "balanced_accuracy": 0.9748474932331435,
+          "sensitivity": 0.967713004484305,
+          "specificity": 0.9819819819819819,
+          "precision": 0.9981498612395929,
+          "f1": 0.982695810564663,
+          "mcc": 0.8438907378883652,
+          "threshold": 0.2727946118993578,
+          "tp": 1079,
+          "tn": 109,
+          "fp": 2,
+          "fn": 36
+        },
+        "FUSCC": {
+          "roc_auc": 0.9877525252525253,
+          "pr_auc": 0.9966190526016421,
+          "accuracy": 0.9486607142857143,
+          "balanced_accuracy": 0.959469696969697,
+          "sensitivity": 0.9416666666666667,
+          "specificity": 0.9772727272727273,
+          "precision": 0.9941348973607038,
+          "f1": 0.9671897289586305,
+          "mcc": 0.8562693085360161,
+          "threshold": 0.46711610452709285,
+          "tp": 339,
+          "tn": 86,
+          "fp": 2,
+          "fn": 21
+        },
+        "VARLEY": {
+          "roc_auc": 0.9940476190476191,
+          "pr_auc": 0.996569842174684,
+          "accuracy": 0.9642857142857143,
+          "balanced_accuracy": 0.9583333333333334,
+          "sensitivity": 0.9880952380952381,
+          "specificity": 0.9285714285714286,
+          "precision": 0.9540229885057471,
+          "f1": 0.9707602339181286,
+          "mcc": 0.925864717608711,
+          "threshold": 0.36257576296988814,
+          "tp": 83,
+          "tn": 52,
+          "fp": 4,
+          "fn": 1
+        }
+      }
+    },
+    {
+      "model": "PLS-DA",
+      "normalization": "zsample",
+      "n_genes": 50,
+      "worst_balanced_accuracy": 0.9676767676767677,
+      "mean_balanced_accuracy": 0.9727621687262943,
+      "worst_auc": 0.9875315656565656,
+      "mean_auc": 0.9913421487672768,
+      "per_cohort": {
+        "TCGA": {
+          "roc_auc": 0.9977618874479861,
+          "pr_auc": 0.999780746249865,
+          "accuracy": 0.9608482871125612,
+          "balanced_accuracy": 0.974419262311639,
+          "sensitivity": 0.957847533632287,
+          "specificity": 0.990990990990991,
+          "precision": 0.9990645463049579,
+          "f1": 0.978021978021978,
+          "mcc": 0.8148028770694205,
+          "threshold": 0.4203950089289052,
+          "tp": 1068,
+          "tn": 110,
+          "fp": 1,
+          "fn": 47
+        },
+        "FUSCC": {
+          "roc_auc": 0.9875315656565656,
+          "pr_auc": 0.9964673546536577,
+          "accuracy": 0.96875,
+          "balanced_accuracy": 0.9676767676767677,
+          "sensitivity": 0.9694444444444444,
+          "specificity": 0.9659090909090909,
+          "precision": 0.9914772727272727,
+          "f1": 0.9803370786516854,
+          "mcc": 0.9056521663101182,
+          "threshold": 0.37097112161123136,
+          "tp": 349,
+          "tn": 85,
+          "fp": 3,
+          "fn": 11
+        },
+        "VARLEY": {
+          "roc_auc": 0.9887329931972789,
+          "pr_auc": 0.9922714362458877,
+          "accuracy": 0.9785714285714285,
+          "balanced_accuracy": 0.9761904761904763,
+          "sensitivity": 0.9880952380952381,
+          "specificity": 0.9642857142857143,
+          "precision": 0.9764705882352941,
+          "f1": 0.9822485207100592,
+          "mcc": 0.9553302944424513,
+          "threshold": 0.3447919939126925,
+          "tp": 83,
+          "tn": 54,
+          "fp": 2,
+          "fn": 1
+        }
+      }
+    },
+    {
+      "model": "PLS-DA",
+      "normalization": "logtpm",
+      "n_genes": 50,
+      "worst_balanced_accuracy": 0.9553030303030303,
+      "mean_balanced_accuracy": 0.9707711934169333,
+      "worst_auc": 0.987310606060606,
+      "mean_auc": 0.9935056067303024,
+      "per_cohort": {
+        "TCGA": {
+          "roc_auc": 0.9978830848786006,
+          "pr_auc": 0.999788110088591,
+          "accuracy": 0.9616639477977161,
+          "balanced_accuracy": 0.9748676928049125,
+          "sensitivity": 0.9587443946188341,
+          "specificity": 0.990990990990991,
+          "precision": 0.9990654205607477,
+          "f1": 0.9784897025171625,
+          "mcc": 0.8178004674966128,
+          "threshold": 0.42258657820830303,
+          "tp": 1069,
+          "tn": 110,
+          "fp": 1,
+          "fn": 46
+        },
+        "FUSCC": {
+          "roc_auc": 0.987310606060606,
+          "pr_auc": 0.9963078836598569,
+          "accuracy": 0.9419642857142857,
+          "balanced_accuracy": 0.9553030303030303,
+          "sensitivity": 0.9333333333333333,
+          "specificity": 0.9772727272727273,
+          "precision": 0.9940828402366864,
+          "f1": 0.9627507163323782,
+          "mcc": 0.8405594405594405,
+          "threshold": 0.4068766278716015,
+          "tp": 336,
+          "tn": 86,
+          "fp": 2,
+          "fn": 24
+        },
+        "VARLEY": {
+          "roc_auc": 0.9953231292517007,
+          "pr_auc": 0.9966880836596407,
+          "accuracy": 0.9857142857142858,
+          "balanced_accuracy": 0.9821428571428572,
+          "sensitivity": 1.0,
+          "specificity": 0.9642857142857143,
+          "precision": 0.9767441860465116,
+          "f1": 0.9882352941176471,
+          "mcc": 0.9704949588309457,
+          "threshold": 0.29887197675194793,
+          "tp": 84,
+          "tn": 54,
+          "fp": 2,
+          "fn": 0
+        }
+      }
+    }
+  ],
+  "v2_baseline": {
+    "model": "k-NN (k=5)",
+    "normalization": "zsample",
+    "n_genes": 50,
+    "worst_balanced_accuracy": 0.9404761904761905,
+    "mean_balanced_accuracy": 0.9518354415215402,
+    "worst_auc": 0.9501488095238095,
+    "mean_auc": 0.9725536489549942,
+    "per_cohort": {
+      "TCGA": {
+        "roc_auc": 0.9936169353209712,
+        "pr_auc": 0.9991720219286171,
+        "accuracy": 0.9787928221859706,
+        "balanced_accuracy": 0.9680604371187331,
+        "sensitivity": 0.9811659192825112,
+        "specificity": 0.954954954954955,
+        "precision": 0.9954504094631483,
+        "f1": 0.988256549232159,
+        "mcc": 0.881515891487353,
+        "threshold": 0.40111243741869623,
+        "tp": 1094,
+        "tn": 106,
+        "fp": 5,
+        "fn": 21
+      },
+      "FUSCC": {
+        "roc_auc": 0.9738952020202021,
+        "pr_auc": 0.9886813876397695,
+        "accuracy": 0.9285714285714286,
+        "balanced_accuracy": 0.946969696969697,
+        "sensitivity": 0.9166666666666666,
+        "specificity": 0.9772727272727273,
+        "precision": 0.9939759036144579,
+        "f1": 0.953757225433526,
+        "mcc": 0.8107792512743138,
+        "threshold": 0.999999,
+        "tp": 330,
+        "tn": 86,
+        "fp": 2,
+        "fn": 30
+      },
+      "VARLEY": {
+        "roc_auc": 0.9501488095238095,
+        "pr_auc": 0.9493357110233435,
+        "accuracy": 0.9428571428571428,
+        "balanced_accuracy": 0.9404761904761905,
+        "sensitivity": 0.9523809523809523,
+        "specificity": 0.9285714285714286,
+        "precision": 0.9523809523809523,
+        "f1": 0.9523809523809523,
+        "mcc": 0.8809523809523809,
+        "threshold": 0.7873004442330294,
+        "tp": 80,
+        "tn": 52,
+        "fp": 4,
+        "fn": 4
+      }
+    }
+  },
+  "chosen": {
+    "model": "PLS-DA",
+    "normalization": "zsample",
+    "n_genes": 50
+  },
+  "final_threshold": 0.5831755928893979,
+  "progression_spectrum": [
+    {
+      "subgroup": "норма",
+      "n": 28,
+      "mean_risk": 0.19034960873628218,
+      "median_risk": 0.1426628535103555,
+      "flagged_rate": 0.03571428571428571
+    },
+    {
+      "subgroup": "ранняя неоплазия",
+      "n": 28,
+      "mean_risk": 0.36133069835721665,
+      "median_risk": 0.3356954130918741,
+      "flagged_rate": 0.14285714285714285
+    },
+    {
+      "subgroup": "DCIS (рак на месте)",
+      "n": 10,
+      "mean_risk": 0.763311678570601,
+      "median_risk": 0.8143686542105962,
+      "flagged_rate": 0.8
+    },
+    {
+      "subgroup": "инвазивная карцинома",
+      "n": 14,
+      "mean_risk": 0.9566685867088408,
+      "median_risk": 0.9737931316238556,
+      "flagged_rate": 1.0
+    }
+  ]
+}
